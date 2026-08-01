@@ -264,6 +264,7 @@
                      data-ux_mode="popup"
                      data-callback="handleCredentialResponse"
                      data-auto_prompt="false"
+                     data-auto_select="false"
                      data-prompt="select_account">
                 </div>
                 <div class="g_id_signin"
@@ -445,6 +446,13 @@
         // Load saved theme preferences
         const savedTheme = localStorage.getItem("theme") || "light";
         setTheme(savedTheme);
+
+        // Force Google account chooser by disabling auto-login cache
+        window.addEventListener("load", () => {
+            if (window.google && google.accounts && google.accounts.id) {
+                google.accounts.id.disableAutoSelect();
+            }
+        });
     </script>
 </body>
 </html>
