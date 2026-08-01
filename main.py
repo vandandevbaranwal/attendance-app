@@ -495,7 +495,7 @@ def mark_attendance(payload: AttendanceRequest, db: Session = Depends(get_db)):
         if distance > 100.0:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Attendance rejected: You are physically too far from the classroom (distance: {int(distance)}m)."
+                detail="Attendance rejected: Location verification failed. You must be physically present in the classroom."
             )
         
     now = datetime.utcnow()

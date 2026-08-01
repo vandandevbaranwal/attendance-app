@@ -189,7 +189,7 @@ def run_tests():
         "longitude": 80.9900
     })
     assert res.status_code == 400
-    assert "too far from the classroom" in res.json()["detail"]
+    assert "Location verification failed" in res.json()["detail"]
     
     # Try to mark attendance WITH close coordinates (~14m) -> Should succeed (200)
     res = client.post("/mark-attendance", json={
