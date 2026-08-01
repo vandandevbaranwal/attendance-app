@@ -43,6 +43,7 @@ class ClassroomSession(Base):
     is_active = Column(Integer, default=1, nullable=False)  # 1 for active, 0 for inactive
     started_at = Column(DateTime, nullable=False)
     current_token = Column(String, nullable=False)
+    previous_tokens = Column(String, nullable=True)  # Comma-separated list of older valid tokens
     token_expiry = Column(DateTime, nullable=False)
 
 class Attendance(Base):

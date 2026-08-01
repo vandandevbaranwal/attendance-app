@@ -321,20 +321,31 @@ def stop_session(authorization: str = Header(None), db: Session = Depends(get_db
     db.commit()
     return {"status": "success", "message": "Attendance session stopped successfully"}
 
+def rotate_session_token(session: ClassroomSession, db: Session):
+    now = datetime.utcnow()
+    if now >= session.token_expiry:
+        old_token = session.current_token
+        prev_list = []
+        if session.previous_tokens:
+            prev_list = session.previous_tokens.split(",")
+        prev_list.insert(0, old_token)
+        # Keep up to 3 older tokens (valid for 60 seconds total: 15s display + 45s buffer)
+        session.previous_tokens = ",".join(prev_list[:3])
+        
+        session.current_token = str(uuid.uuid4())
+        session.token_expiry = now + timedelta(seconds=15)
+        db.commit()
+        db.refresh(session)
+
 @app.get("/active-session")
 def get_active_session(db: Session = Depends(get_db)):
     session = db.query(ClassroomSession).filter(ClassroomSession.is_active == 1).first()
     if not session:
         return {"is_active": False}
         
+    rotate_session_token(session, db)
+    
     now = datetime.utcnow()
-    # Check if the token has expired, if yes, rotate it
-    if now >= session.token_expiry:
-        session.current_token = str(uuid.uuid4())
-        session.token_expiry = now + timedelta(seconds=15)
-        db.commit()
-        db.refresh(session)
-        
     remaining = int((session.token_expiry - now).total_seconds())
     return {
         "is_active": True,
@@ -364,11 +375,7 @@ def generate_qr_token(request: Request, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(session)
     else:
-        if now >= session.token_expiry:
-            session.current_token = str(uuid.uuid4())
-            session.token_expiry = now + timedelta(seconds=15)
-            db.commit()
-            db.refresh(session)
+        rotate_session_token(session, db)
             
     base_url = str(request.base_url).rstrip("/")
     mark_url = f"{base_url}/mark-attendance?token={session.current_token}"
@@ -438,18 +445,18 @@ def mark_attendance(payload: AttendanceRequest, db: Session = Depends(get_db)):
             detail="No active attendance session found."
         )
         
-    if session.current_token != payload.token:
+    # Build a list of valid tokens: current_token + older tokens in sliding window
+    valid_tokens = [session.current_token]
+    if session.previous_tokens:
+        valid_tokens.extend(session.previous_tokens.split(","))
+        
+    if payload.token not in valid_tokens:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid QR token. The QR code has updated."
+            detail="Invalid QR token. The QR code has updated. Please scan the latest code."
         )
         
     now = datetime.utcnow()
-    if now >= session.token_expiry:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="This QR code token has expired. Please scan the newly generated QR code."
-        )
         
     # Construct timestamp from session_date and current local time, then convert back to UTC
     try:
