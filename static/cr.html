@@ -775,29 +775,59 @@
                 return;
             }
             
-            try {
-                const res = await fetch("/start-session", {
-                    method: "POST",
-                    headers: { 
-                        "Content-Type": "application/json",
-                        ...getAuthHeaders()
-                    },
-                    body: JSON.stringify({ subject, session_date: sessionDate })
-                });
-                const data = await res.json();
-                if(res.ok && data.status === "success") {
-                    // Sync the report extractor inputs automatically for convenience!
-                    document.getElementById("reportSubject").value = subject;
-                    document.getElementById("reportDate").value = sessionDate;
-                    
-                    pollActiveSession();
-                    // Load report preview immediately!
-                    loadReportPreview();
-                } else {
-                    alert(data.detail || "Error starting session");
+            const startBtn = document.getElementById("startSessionBtn");
+            startBtn.disabled = true;
+            startBtn.innerText = "Starting...";
+            
+            async function postSession(lat = null, lon = null) {
+                try {
+                    const res = await fetch("/start-session", {
+                        method: "POST",
+                        headers: { 
+                            "Content-Type": "application/json",
+                            ...getAuthHeaders()
+                        },
+                        body: JSON.stringify({ 
+                            subject, 
+                            session_date: sessionDate,
+                            latitude: lat,
+                            longitude: lon
+                        })
+                    });
+                    const data = await res.json();
+                    if(res.ok && data.status === "success") {
+                        document.getElementById("reportSubject").value = subject;
+                        document.getElementById("reportDate").value = sessionDate;
+                        pollActiveSession();
+                        loadReportPreview();
+                    } else {
+                        alert(data.detail || "Error starting session");
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert("Network error starting session.");
+                } finally {
+                    startBtn.disabled = false;
+                    startBtn.innerText = "Start Session";
                 }
-            } catch (err) {
-                console.error(err);
+            }
+            
+            // Get location if available
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        postSession(position.coords.latitude, position.coords.longitude);
+                    },
+                    (error) => {
+                        console.warn("Location permission denied/failed. Starting without geofencing.", error);
+                        alert("⚠️ Location access denied/failed. The session will start, but Geofencing protection will be disabled.");
+                        postSession(null, null);
+                    },
+                    { enableHighAccuracy: true, timeout: 5000 }
+                );
+            } else {
+                alert("⚠️ Geolocation not supported by this browser. Starting without Geofencing.");
+                postSession(null, null);
             }
         }
 

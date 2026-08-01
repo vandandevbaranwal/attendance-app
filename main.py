@@ -8,6 +8,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from typing import Optional
+import math
 
 from database import get_db, Student, Attendance, ClassroomSession
 from auth import verify_google_token
@@ -50,10 +52,14 @@ SUBJECTS = [
 class AttendanceRequest(BaseModel):
     token: str
     google_token: str
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
 class StartSessionRequest(BaseModel):
     subject: str
     session_date: str
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
 class VerifyCrRequest(BaseModel):
     google_token: str
@@ -70,6 +76,22 @@ def get_local_ip():
     finally:
         s.close()
     return IP
+
+def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    # Haversine formula to compute distance in meters between coordinates
+    R = 6371000.0  # Earth's radius in meters
+    lat1_rad = math.radians(lat1)
+    lon1_rad = math.radians(lon1)
+    lat2_rad = math.radians(lat2)
+    lon2_rad = math.radians(lon2)
+    
+    dlat = lat2_rad - lat1_rad
+    dlon = lon2_rad - lon1_rad
+    
+    a = math.sin(dlat / 2)**2 + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(dlon / 2)**2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    
+    return R * c
 
 def to_local_time(utc_dt: datetime) -> datetime:
     # Dynamically shift UTC to the server's local timezone
@@ -300,7 +322,9 @@ def start_session(payload: StartSessionRequest, authorization: str = Header(None
         is_active=1,
         started_at=now,
         current_token=str(uuid.uuid4()),
-        token_expiry=now + timedelta(seconds=15)
+        token_expiry=now + timedelta(seconds=15),
+        latitude=payload.latitude,
+        longitude=payload.longitude
     )
     db.add(new_session)
     db.commit()
@@ -455,6 +479,24 @@ def mark_attendance(payload: AttendanceRequest, db: Session = Depends(get_db)):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid QR token. The QR code has updated. Please scan the latest code."
         )
+        
+    # Geofencing Validation: verify distance between student and CR if session has location coordinates
+    if session.latitude is not None and session.longitude is not None:
+        if payload.latitude is None or payload.longitude is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Location access is required to verify physical presence in the classroom."
+            )
+        distance = calculate_distance(
+            session.latitude, session.longitude,
+            payload.latitude, payload.longitude
+        )
+        # Enforce 100 meters threshold
+        if distance > 100.0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Attendance rejected: You are physically too far from the classroom (distance: {int(distance)}m)."
+            )
         
     now = datetime.utcnow()
         

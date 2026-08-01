@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, ForeignKey, Float
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 from dotenv import load_dotenv
 
@@ -45,6 +45,8 @@ class ClassroomSession(Base):
     current_token = Column(String, nullable=False)
     previous_tokens = Column(String, nullable=True)  # Comma-separated list of older valid tokens
     token_expiry = Column(DateTime, nullable=False)
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
 
 class Attendance(Base):
     __tablename__ = "attendance"

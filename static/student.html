@@ -329,11 +329,30 @@
                 return;
             }
             
-            submitAttendance(response.credential);
+            // Try to acquire location coordinates before sending
+            if (navigator.geolocation) {
+                showAlert('success', 'Verifying location coordinates...');
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        submitAttendance(response.credential, position.coords.latitude, position.coords.longitude);
+                    },
+                    (error) => {
+                        console.error("Location error:", error);
+                        let errorMsg = "Location access is required. Please enable location services and allow permission.";
+                        if (error.code === error.PERMISSION_DENIED) {
+                            errorMsg = "Location access denied. You must allow location access to mark attendance.";
+                        }
+                        showAlert('error', errorMsg);
+                    },
+                    { enableHighAccuracy: true, timeout: 8000 }
+                );
+            } else {
+                showAlert('error', 'Your browser does not support location verification. Attendance cannot be recorded.');
+            }
         }
 
         // Submits the registration request to FastAPI
-        async function submitAttendance(googleToken) {
+        async function submitAttendance(googleToken, lat = null, lon = null) {
             try {
                 const response = await fetch('/mark-attendance', {
                     method: 'POST',
@@ -342,7 +361,9 @@
                     },
                     body: JSON.stringify({
                         token: sessionToken,
-                        google_token: googleToken
+                        google_token: googleToken,
+                        latitude: lat,
+                        longitude: lon
                     })
                 });
 
@@ -375,7 +396,22 @@
             }
 
             const mockGoogleToken = `mock_token_${email}`;
-            submitAttendance(mockGoogleToken);
+            
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        submitAttendance(mockGoogleToken, position.coords.latitude, position.coords.longitude);
+                    },
+                    (error) => {
+                        console.warn("Mock location failed/denied. Using defaults.", error);
+                        // Default mock coordinates for testing if permission denied
+                        submitAttendance(mockGoogleToken, 26.8929, 80.9840);
+                    },
+                    { enableHighAccuracy: true, timeout: 3000 }
+                );
+            } else {
+                submitAttendance(mockGoogleToken, 26.8929, 80.9840);
+            }
         }
 
         // Dark/Light Mode logic

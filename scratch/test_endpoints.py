@@ -161,6 +161,48 @@ def run_tests():
     assert res.json()["is_active"] is False
     print("    [OK] Stop session blocked unauthorized access, and stopped session successfully.")
 
+    # 11. Test Geofencing validation
+    print("\n11. Testing Geofencing validations...")
+    # Start a session WITH coordinates
+    res = client.post("/start-session", json={
+        "subject": target_subject,
+        "session_date": today_str,
+        "latitude": 26.8929,
+        "longitude": 80.9840
+    }, headers=valid_headers)
+    assert res.status_code == 200
+    geo_token = res.json()["token"]
+    
+    # Try to mark attendance WITHOUT coordinates -> Should fail (400)
+    res = client.post("/mark-attendance", json={
+        "token": geo_token,
+        "google_token": f"mock_token_{valid_cr_email}"
+    })
+    assert res.status_code == 400
+    assert "Location access is required" in res.json()["detail"]
+    
+    # Try to mark attendance WITH far coordinates (~6km) -> Should fail (400)
+    res = client.post("/mark-attendance", json={
+        "token": geo_token,
+        "google_token": f"mock_token_{valid_cr_email}",
+        "latitude": 26.9500,
+        "longitude": 80.9900
+    })
+    assert res.status_code == 400
+    assert "too far from the classroom" in res.json()["detail"]
+    
+    # Try to mark attendance WITH close coordinates (~14m) -> Should succeed (200)
+    res = client.post("/mark-attendance", json={
+        "token": geo_token,
+        "google_token": f"mock_token_{valid_cr_email}",
+        "latitude": 26.8930,
+        "longitude": 80.9841
+    })
+    assert res.status_code == 200
+    # Clean stop
+    client.post("/stop-session", headers=valid_headers)
+    print("   [OK] Geofencing successfully blocked distant users and accepted close users.")
+
     print("\n=========================================")
     print("ALL SECURED TESTS PASSED SUCCESSFULLY!")
     print("=========================================")
