@@ -315,7 +315,8 @@
         }
 
         // Google Authentication handler callback
-        function handleCredentialResponse(response) {
+        // Called with the raw access token string from the OAuth2 token client
+        function handleCredentialResponse(googleToken) {
             if (!sessionToken) {
                 showAlert('error', 'Missing active session token. Please scan a valid QR code.');
                 return;
@@ -326,7 +327,7 @@
                 showAlert('success', 'Verifying location coordinates...');
                 navigator.geolocation.getCurrentPosition(
                     (position) => {
-                        submitAttendance(response.credential, position.coords.latitude, position.coords.longitude);
+                        submitAttendance(googleToken, position.coords.latitude, position.coords.longitude);
                     },
                     (error) => {
                         console.error("Location error:", error);
