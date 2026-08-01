@@ -479,25 +479,17 @@
             
             <div class="alert" id="loginAlert"></div>
             
-            <!-- Google GIS Authentication Button -->
+            <!-- Google OAuth button -->
             <div style="display: flex; justify-content: center; width: 100%; margin: 1rem 0;">
-                <div id="g_id_onload"
-                     data-client_id="{{GOOGLE_CLIENT_ID}}"
-                     data-context="signin"
-                     data-ux_mode="popup"
-                     data-callback="handleLoginResponse"
-                     data-auto_prompt="false"
-                     data-auto_select="false"
-                     data-prompt="select_account">
-                </div>
-                <div class="g_id_signin"
-                     data-type="standard"
-                     data-shape="pill"
-                     data-theme="outline"
-                     data-text="signin_with"
-                     data-size="large"
-                     data-logo_alignment="left">
-                </div>
+                <button class="google-custom-btn" onclick="loginWithGoogle()" style="display: flex; align-items: center; justify-content: center; gap: 0.8rem; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-color); padding: 0.8rem 1.5rem; border-radius: 50px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; width: 100%; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); font-family: inherit; font-size: 0.95rem;">
+                    <svg width="20" height="20" viewBox="0 0 18 18" style="margin-right: 0.2rem;">
+                        <path fill="#4285F4" d="M17.64 9.2c0-.63-.06-1.25-.16-1.84H9v3.47h4.84a4.14 4.14 0 0 1-1.8 2.71v2.26h2.91c1.7-1.57 2.69-3.88 2.69-6.6z"/>
+                        <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.2l-2.91-2.26c-.8.54-1.83.86-3.05.86-2.34 0-4.32-1.58-5.03-3.7H.95v2.33A9 9 0 0 0 9 18z"/>
+                        <path fill="#FBBC05" d="M3.97 10.7a5.4 5.4 0 0 1 0-3.4V4.97H.95a9 9 0 0 0 0 8.06l3.02-2.33z"/>
+                        <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35L15 2.1A9 9 0 0 0 .95 4.97l3.02 2.33C4.68 5.16 6.66 3.58 9 3.58z"/>
+                    </svg>
+                    Sign in with Google
+                </button>
             </div>
 
             <!-- Dev Local Testing Option for CR login -->
@@ -1047,17 +1039,45 @@
             }
         }
 
+        let tokenClient;
+
+        function initGoogleSignIn() {
+            if (window.google && google.accounts && google.accounts.oauth2) {
+                tokenClient = google.accounts.oauth2.initTokenClient({
+                    client_id: '{{GOOGLE_CLIENT_ID}}',
+                    scope: 'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
+                    prompt: 'select_account', // Forces Google account chooser to show
+                    callback: (tokenResponse) => {
+                        if (tokenResponse && tokenResponse.access_token) {
+                            verifyCRToken(tokenResponse.access_token);
+                        }
+                    }
+                });
+            } else {
+                console.error("Google Identity Services script not loaded.");
+            }
+        }
+
+        function loginWithGoogle() {
+            if (!tokenClient) {
+                initGoogleSignIn();
+            }
+            if (tokenClient) {
+                tokenClient.requestAccessToken();
+            } else {
+                alert('Google login services failed to initialize. Please refresh.');
+            }
+        }
+
         // Initialize portal
         const savedTheme = localStorage.getItem("theme") || "light";
         setTheme(savedTheme);
         setDefaultDate();
         startTimerTick();
 
-        // Force Google account chooser by disabling auto-login cache
+        // Initialize Google Sign-in on load
         window.addEventListener("load", () => {
-            if (window.google && google.accounts && google.accounts.id) {
-                google.accounts.id.disableAutoSelect();
-            }
+            setTimeout(initGoogleSignIn, 500);
         });
     </script>
 </body>
