@@ -362,7 +362,7 @@
 
     <header>
         <button class="theme-toggle-btn" onclick="toggleTheme()" id="themeToggleBtn">
-            <span id="themeIcon">🌙</span> <span id="themeText">Dark Mode</span>
+            <span id="themeIcon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span> <span id="themeText">Dark Mode</span>
         </button>
     </header>
 
@@ -376,7 +376,7 @@
                     <div class="pulse-ring-1"></div>
                     <div class="pulse-ring-2"></div>
                     <div class="pulse-core">
-                        <span>🎓</span>
+                        <span><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 1.66 2.69 3 6 3s6-1.34 6-3v-5"/></svg></span>
                     </div>
                 </div>
                 <p class="subtitle">Waiting for the Class Representative (CR) to start the attendance session from the portal.</p>
@@ -393,7 +393,7 @@
 
                 <div class="timer-container">
                     <div class="timer-text" id="timerText">
-                        Refreshing in <span id="secondsLeft">15</span>s ⏳
+                        Refreshing in <span id="secondsLeft">15</span>s
                     </div>
                     <div class="timer-bar-bg">
                         <div class="timer-bar-fill" id="timerBar"></div>
@@ -403,7 +403,7 @@
 
             <!-- Localhost Warning -->
             <div class="warning-box" id="localhostWarning">
-                <strong>⚠️ Localhost Access Detected:</strong> Smartphones cannot resolve <code>localhost</code>. Connect your phone to the same Wi-Fi and open: <br>
+                <strong><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Localhost Access Detected:</strong> Smartphones cannot resolve <code>localhost</code>. Connect your phone to the same Wi-Fi and open: <br>
                 <code id="ipLink" style="display: inline-block; margin-top: 0.5rem;"></code>
             </div>
 
@@ -537,10 +537,10 @@
             const themeText = document.getElementById("themeText");
             
             if (theme === "dark") {
-                themeIcon.innerText = "☀️";
+                themeIcon.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
                 themeText.innerText = "Light Mode";
             } else {
-                themeIcon.innerText = "🌙";
+                themeIcon.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
                 themeText.innerText = "Dark Mode";
             }
         }
