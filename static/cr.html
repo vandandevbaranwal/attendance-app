@@ -1065,7 +1065,12 @@
             if (tokenClient) {
                 tokenClient.requestAccessToken();
             } else {
-                alert('Google login services failed to initialize. Please refresh.');
+                initGoogleSignIn();
+                if (tokenClient) {
+                    tokenClient.requestAccessToken();
+                } else {
+                    alert('Google Sign-In is still loading. Please wait a moment and try again.');
+                }
             }
         }
 

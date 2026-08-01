@@ -460,7 +460,12 @@
             if (tokenClient) {
                 tokenClient.requestAccessToken();
             } else {
-                showAlert('error', 'Google login services failed to initialize. Please refresh.');
+                initGoogleSignIn();
+                if (tokenClient) {
+                    tokenClient.requestAccessToken();
+                } else {
+                    showAlert('error', 'Google Sign-In is still loading. Please wait a moment and try again.');
+                }
             }
         }
 
