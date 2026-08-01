@@ -10,16 +10,16 @@ GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 def verify_google_token(token: str) -> str:
     """
     Verifies a Google ID token and returns the user's email.
-    
-    For development/testing:
-    If the token starts with 'mock_token_', it bypasses actual Google API validation
-    and extracts the email from the suffix (e.g., 'mock_token_2500520200001@ietlucknow.ac.in').
     """
+    is_dev = os.getenv("ENV", "production").lower() == "development"
     if token.startswith("mock_token_"):
-        parts = token.split("mock_token_")
-        if len(parts) > 1 and parts[1]:
-            return parts[1]
-        return "2500520200001@ietlucknow.ac.in"
+        if is_dev:
+            parts = token.split("mock_token_")
+            if len(parts) > 1 and parts[1]:
+                return parts[1]
+            return "2500520200001@ietlucknow.ac.in"
+        else:
+            raise ValueError("Mock authentication tokens are disabled in the production environment.")
 
     if not GOOGLE_CLIENT_ID or GOOGLE_CLIENT_ID == "your-google-client-id-here.apps.googleusercontent.com":
         raise ValueError("GOOGLE_CLIENT_ID is not configured in the .env file.")

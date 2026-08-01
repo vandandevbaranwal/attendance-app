@@ -2,6 +2,9 @@ import sys
 import os
 from datetime import datetime, timedelta
 
+# Set development environment so mock tokens are permitted during tests
+os.environ["ENV"] = "development"
+
 # Add parent directory to path so we can import from app
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
