@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classroom Screen - Anti-Proxy Attendance</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- QRCode.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-color: #0f172a;
+            --text-muted: #64748b;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --border-color: #e2e8f0;
+            --shadow: 0 10px 25px -5px rgb(0 0 0 / 0.05), 0 8px 10px -6px rgb(0 0 0 / 0.05);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --gradient: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #090d16;
+            --card-bg: #111827;
+            --text-color: #f9fafb;
+            --text-muted: #9ca3af;
+            --primary: #3b82f6;
+            --primary-hover: #60a5fa;
+            --border-color: #1f2937;
+            --shadow: 0 10px 25px -5px rgb(0 0 0 / 0.3), 0 8px 10px -6px rgb(0 0 0 / 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            transition: var(--transition);
+            overflow: hidden;
+        }
+
+        /* Ambient Glow (Premium aesthetics) */
+        .ambient-glow {
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(37, 99, 235, 0.12) 0%, rgba(37, 99, 235, 0) 70%);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1;
+            pointer-events: none;
+            animation: pulse-glow 6s infinite alternate;
+        }
+
+        @keyframes pulse-glow {
+            0% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+            100% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+        }
+
+        header {
+            position: absolute;
+            top: 2rem;
+            right: 2rem;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            z-index: 10;
+        }
+
+        /* Toggle Button */
+        .theme-toggle-btn {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 0.6rem 1.2rem;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+        }
+
+        .theme-toggle-btn:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .dashboard-container {
+            max-width: 650px;
+            width: 100%;
+            text-align: center;
+            z-index: 5;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 32px;
+            padding: 4rem 3rem;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Custom top highlight bar */
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 6px;
+            background: var(--gradient);
+        }
+
+        h1.heading {
+            font-size: 2.5rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            background: linear-gradient(135deg, var(--text-color) 30%, var(--primary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p.subtitle {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            max-width: 480px;
+            line-height: 1.6;
+        }
+
+        /* State 1: Active Session Styles */
+        .active-state {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 2rem;
+            width: 100%;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .subject-badge {
+            background: rgba(37, 99, 235, 0.08);
+            color: var(--primary);
+            padding: 0.6rem 1.4rem;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            border: 1px solid rgba(37, 99, 235, 0.15);
+            max-width: 90%;
+            text-align: center;
+            word-wrap: break-word;
+        }
+
+        /* QR Code Wrapper */
+        .qr-wrapper {
+            background-color: #ffffff;
+            padding: 1.8rem;
+            border-radius: 24px;
+            box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.08);
+            display: inline-block;
+            transition: var(--transition);
+            border: 1px solid #e2e8f0;
+        }
+
+        #qrcode {
+            width: 256px;
+            height: 256px;
+        }
+
+        /* Countdown Area */
+        .timer-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.8rem;
+            width: 100%;
+        }
+
+        .timer-bar-bg {
+            width: 80%;
+            max-width: 320px;
+            height: 8px;
+            background-color: var(--border-color);
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .timer-bar-fill {
+            height: 100%;
+            background: var(--gradient);
+            width: 100%;
+            transition: width 0.1s linear;
+        }
+
+        .timer-text {
+            font-weight: 600;
+            font-size: 1.15rem;
+            color: var(--text-color);
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        /* State 2: Waiting Session Styles */
+        .waiting-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2rem;
+            width: 100%;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .pulse-logo {
+            position: relative;
+            width: 140px;
+            height: 140px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 1.5rem 0;
+        }
+
+        .pulse-ring-1 {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 2px solid var(--primary);
+            opacity: 0.4;
+            animation: pulse-ring 2.5s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
+        }
+
+        .pulse-ring-2 {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 2px solid var(--primary);
+            opacity: 0.2;
+            animation: pulse-ring 2.5s infinite 0.8s cubic-bezier(0.215, 0.61, 0.355, 1);
+        }
+
+        .pulse-core {
+            width: 80px;
+            height: 80px;
+            background: var(--gradient);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 20px -5px rgba(37, 99, 235, 0.4);
+            z-index: 2;
+        }
+
+        .pulse-core span {
+            font-size: 2.2rem;
+            color: white;
+            animation: pulse-icon 1.5s infinite alternate;
+        }
+
+        @keyframes pulse-ring {
+            0% { transform: scale(0.6); opacity: 0.8; }
+            100% { transform: scale(1.6); opacity: 0; }
+        }
+
+        @keyframes pulse-icon {
+            0% { transform: scale(0.9); }
+            100% { transform: scale(1.1); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Localhost Warning block */
+        .warning-box {
+            display: none;
+            background-color: rgba(245, 158, 11, 0.08);
+            border: 1px solid rgba(245, 158, 11, 0.25);
+            color: #d97706;
+            padding: 1.2rem;
+            border-radius: 20px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            text-align: left;
+            max-width: 480px;
+            margin-top: 1rem;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .warning-box code {
+            font-family: monospace;
+            font-weight: bold;
+            background: rgba(0,0,0,0.05);
+            padding: 0.2rem 0.4rem;
+            border-radius: 6px;
+            color: var(--primary);
+        }
+
+        .connection-status {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #10b981;
+            display: inline-block;
+        }
+
+        .status-dot.loading {
+            background-color: #f59e0b;
+            animation: pulse-dot 1s infinite alternate;
+        }
+
+        @keyframes pulse-dot {
+            0% { opacity: 0.4; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="ambient-glow"></div>
+
+    <header>
+        <button class="theme-toggle-btn" onclick="toggleTheme()" id="themeToggleBtn">
+            <span id="themeIcon">🌙</span> <span id="themeText">Dark Mode</span>
+        </button>
+    </header>
+
+    <div class="dashboard-container">
+        <div class="card">
+            <h1 class="heading">Electrical Engineering</h1>
+            
+            <!-- STATE 2: Waiting for Session -->
+            <div id="waitingState" class="waiting-state">
+                <div class="pulse-logo">
+                    <div class="pulse-ring-1"></div>
+                    <div class="pulse-ring-2"></div>
+                    <div class="pulse-core">
+                        <span>🎓</span>
+                    </div>
+                </div>
+                <p class="subtitle">Waiting for the Class Representative (CR) to start the attendance session from the portal.</p>
+            </div>
+
+            <!-- STATE 1: Active Session -->
+            <div id="activeState" class="active-state">
+                <div class="subject-badge" id="activeSubject">Loading Subject...</div>
+                <p class="subtitle">Scan the rolling QR code below with your smartphone to register your attendance. Updates every 15s.</p>
+                
+                <div class="qr-wrapper">
+                    <div id="qrcode"></div>
+                </div>
+
+                <div class="timer-container">
+                    <div class="timer-text" id="timerText">
+                        Refreshing in <span id="secondsLeft">15</span>s ⏳
+                    </div>
+                    <div class="timer-bar-bg">
+                        <div class="timer-bar-fill" id="timerBar"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Localhost Warning -->
+            <div class="warning-box" id="localhostWarning">
+                <strong>⚠️ Localhost Access Detected:</strong> Smartphones cannot resolve <code>localhost</code>. Connect your phone to the same Wi-Fi and open: <br>
+                <code id="ipLink" style="display: inline-block; margin-top: 0.5rem;"></code>
+            </div>
+
+            <div class="connection-status">
+                <span class="status-dot" id="statusDot"></span>
+                <span id="statusText">System active & monitoring</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let qrcodeInstance = null;
+        let lastToken = "";
+        let currentSubject = "";
+        let remainingSeconds = 15;
+
+        // Render QR Code
+        function updateQRCode(url) {
+            const qrContainer = document.getElementById("qrcode");
+            qrContainer.innerHTML = "";
+            
+            qrcodeInstance = new QRCode(qrContainer, {
+                text: url,
+                width: 256,
+                height: 256,
+                colorDark: "#0f172a",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.M
+            });
+        }
+
+        // Poll server for active session
+        async function checkActiveSession() {
+            const statusDot = document.getElementById("statusDot");
+            const statusText = document.getElementById("statusText");
+            
+            try {
+                const response = await fetch("/active-session");
+                if (!response.ok) throw new Error("Failed to fetch session state");
+                
+                const data = await response.json();
+                
+                const waitingDiv = document.getElementById("waitingState");
+                const activeDiv = document.getElementById("activeState");
+                const warningDiv = document.getElementById("localhostWarning");
+                
+                if (data.is_active) {
+                    // Update States
+                    waitingDiv.style.display = "none";
+                    activeDiv.style.display = "flex";
+                    
+                    // Update Subject
+                    if (currentSubject !== data.subject) {
+                        currentSubject = data.subject;
+                        document.getElementById("activeSubject").innerText = currentSubject;
+                    }
+                    
+                    // Update QR if token changed
+                    if (lastToken !== data.token) {
+                        lastToken = data.token;
+                        const qrUrl = `${window.location.origin}/mark-attendance?token=${lastToken}`;
+                        updateQRCode(qrUrl);
+                    }
+                    
+                    // Update Timer
+                    remainingSeconds = data.remaining_seconds;
+                    updateTimerUI();
+                    
+                    // Show IP Helper if accessed locally
+                    const hostname = window.location.hostname;
+                    if ((hostname === "localhost" || hostname === "127.0.0.1") && data.server_ip) {
+                        warningDiv.style.display = "block";
+                        document.getElementById("ipLink").innerText = `http://${data.server_ip}:8000/static/dashboard.html`;
+                    } else {
+                        warningDiv.style.display = "none";
+                    }
+                } else {
+                    // No active session
+                    waitingDiv.style.display = "flex";
+                    activeDiv.style.display = "none";
+                    warningDiv.style.display = "none";
+                    lastToken = "";
+                    currentSubject = "";
+                }
+                
+                statusDot.className = "status-dot";
+                statusText.innerText = "Connected & Secured";
+            } catch (err) {
+                console.error("Poller Error:", err);
+                statusDot.className = "status-dot loading";
+                statusDot.style.backgroundColor = "#ef4444";
+                statusText.innerText = "Reconnecting to server...";
+            }
+        }
+
+        // Timer Bar UI
+        function updateTimerUI() {
+            document.getElementById("secondsLeft").innerText = remainingSeconds;
+            const percentage = (remainingSeconds / 15) * 100;
+            document.getElementById("timerBar").style.width = `${percentage}%`;
+        }
+
+        // Setup ticking and polling loops
+        function startApp() {
+            // Check active session immediately, then every 2 seconds
+            checkActiveSession();
+            setInterval(checkActiveSession, 2000);
+            
+            // Countdown tick every second
+            setInterval(() => {
+                if (remainingSeconds > 0) {
+                    remainingSeconds--;
+                    updateTimerUI();
+                }
+            }, 1000);
+        }
+
+        // Dark/Light Mode toggle logic
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute("data-theme");
+            let targetTheme = "light";
+            if (currentTheme !== "dark") targetTheme = "dark";
+            setTheme(targetTheme);
+        }
+
+        function setTheme(theme) {
+            document.documentElement.setAttribute("data-theme", theme);
+            localStorage.setItem("theme", theme);
+            
+            const themeIcon = document.getElementById("themeIcon");
+            const themeText = document.getElementById("themeText");
+            
+            if (theme === "dark") {
+                themeIcon.innerText = "☀️";
+                themeText.innerText = "Light Mode";
+            } else {
+                themeIcon.innerText = "🌙";
+                themeText.innerText = "Dark Mode";
+            }
+        }
+
+        // Init Theme and start
+        const savedTheme = localStorage.getItem("theme") || "light";
+        setTheme(savedTheme);
+        window.addEventListener("load", startApp);
+    </script>
+</body>
+</html>

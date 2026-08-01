@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mark Attendance - Student portal</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Google Identity Services (GIS) library -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-color: #0f172a;
+            --text-muted: #64748b;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --border-color: #e2e8f0;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --success: #10b981;
+            --error: #ef4444;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-color: #f8fafc;
+            --text-muted: #94a3b8;
+            --primary: #3b82f6;
+            --primary-hover: #60a5fa;
+            --border-color: #334155;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            transition: var(--transition);
+        }
+
+        header {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+        }
+
+        /* Toggle Button */
+        .theme-toggle-btn {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 0.6rem 1.2rem;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+        }
+
+        .theme-toggle-btn:hover {
+            border-color: var(--primary);
+        }
+
+        .container {
+            max-width: 480px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 2.5rem 2rem;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+        }
+
+        p.subtitle {
+            color: var(--text-muted);
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+
+        .token-display {
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            padding: 0.8rem 1.2rem;
+            border-radius: 12px;
+            font-family: monospace;
+            font-size: 0.95rem;
+            font-weight: bold;
+            color: var(--primary);
+            max-width: 100%;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+
+        /* Google button container override to center */
+        .google-btn-wrapper {
+            margin: 1rem 0;
+            display: flex;
+            justify-content: center;
+            width: 100%;
+        }
+
+        /* Status Messages */
+        .alert {
+            display: none;
+            width: 100%;
+            padding: 1rem;
+            border-radius: 12px;
+            font-weight: 500;
+            text-align: left;
+            font-size: 0.95rem;
+            line-height: 1.4;
+            animation: slideDown 0.3s ease;
+        }
+
+        .alert-success {
+            background-color: rgba(16, 185, 129, 0.1);
+            border: 1px solid var(--success);
+            color: var(--success);
+        }
+
+        .alert-error {
+            background-color: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--error);
+            color: var(--error);
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Dev Test Panel styles */
+        .dev-toggle {
+            margin-top: 1.5rem;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            text-decoration: underline;
+            background: none;
+            border: none;
+        }
+
+        .dev-toggle:hover {
+            color: var(--primary);
+        }
+
+        .dev-panel {
+            display: none;
+            flex-direction: column;
+            gap: 0.8rem;
+            width: 100%;
+            border-top: 1px dashed var(--border-color);
+            padding-top: 1.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .dev-panel.active {
+            display: flex;
+        }
+
+        .dev-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-color);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            border-radius: 10px;
+            font-size: 0.9rem;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .dev-input:focus {
+            border-color: var(--primary);
+        }
+
+        .dev-btn {
+            background-color: var(--primary);
+            color: #ffffff;
+            border: none;
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .dev-btn:hover {
+            background-color: var(--primary-hover);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <button class="theme-toggle-btn" onclick="toggleTheme()" id="themeToggleBtn">
+            <span id="themeIcon">🌙</span> <span id="themeText">Dark Mode</span>
+        </button>
+    </header>
+
+    <div class="container">
+        <div class="card">
+            <h1>Mark Attendance</h1>
+            <p class="subtitle">Secure Google authentication checks your email against the Electrical Engineering student whitelist.</p>
+            
+            <div class="token-display" id="tokenDisplay">
+                Loading session token...
+            </div>
+
+            <!-- Custom Success Alert -->
+            <div class="alert alert-success" id="successAlert">
+                <strong>Success!</strong> Attendance has been recorded.
+            </div>
+
+            <!-- Custom Error Alert -->
+            <div class="alert alert-error" id="errorAlert">
+                <strong>Error:</strong> Failed to record attendance.
+            </div>
+
+            <!-- Google OAuth button -->
+            <div class="google-btn-wrapper" id="googleButtonDiv">
+                <!-- Google GIS dynamic loader target -->
+                <div id="g_id_onload"
+                     data-client_id="{{GOOGLE_CLIENT_ID}}"
+                     data-context="signin"
+                     data-ux_mode="popup"
+                     data-callback="handleCredentialResponse"
+                     data-auto_prompt="false"
+                     data-prompt="select_account">
+                </div>
+                <div class="g_id_signin"
+                     data-type="standard"
+                     data-shape="pill"
+                     data-theme="outline"
+                     data-text="signin_with"
+                     data-size="large"
+                     data-logo_alignment="left">
+                </div>
+            </div>
+
+            <button class="dev-toggle" onclick="toggleDevPanel()">Local developer testing options</button>
+            
+            <div class="dev-panel" id="devPanel">
+                <input type="text" class="dev-input" id="devEmail" placeholder="e.g. 2500520200001@ietlucknow.ac.in" value="2500520200001@ietlucknow.ac.in">
+                <button class="dev-btn" onclick="submitMockAttendance()">Submit Mock Attendance</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Extract session token from URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const sessionToken = urlParams.get('token');
+
+        // Render token in display area
+        const tokenDisplay = document.getElementById('tokenDisplay');
+        if (sessionToken) {
+            tokenDisplay.innerText = `Token: ${sessionToken}`;
+        } else {
+            tokenDisplay.innerText = 'No session token provided. Re-scan the classroom QR.';
+            tokenDisplay.style.color = 'var(--error)';
+        }
+
+        // Show/hide developer panel
+        function toggleDevPanel() {
+            const panel = document.getElementById('devPanel');
+            panel.classList.toggle('active');
+        }
+
+        // Display outcome alerts
+        function showAlert(type, message) {
+            const successAlert = document.getElementById('successAlert');
+            const errorAlert = document.getElementById('errorAlert');
+            
+            successAlert.style.display = 'none';
+            errorAlert.style.display = 'none';
+
+            if (type === 'success') {
+                successAlert.innerHTML = `<strong>Success!</strong> ${message}`;
+                successAlert.style.display = 'block';
+            } else {
+                errorAlert.innerHTML = `<strong>Error:</strong> ${message}`;
+                errorAlert.style.display = 'block';
+            }
+        }
+
+        // Google Authentication handler callback
+        function handleCredentialResponse(response) {
+            if (!sessionToken) {
+                showAlert('error', 'Missing active session token. Please scan a valid QR code.');
+                return;
+            }
+            
+            submitAttendance(response.credential);
+        }
+
+        // Submits the registration request to FastAPI
+        async function submitAttendance(googleToken) {
+            try {
+                const response = await fetch('/mark-attendance', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        token: sessionToken,
+                        google_token: googleToken
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Failed to record attendance');
+                }
+
+                if (data.status === 'already_marked') {
+                    showAlert('success', data.message);
+                } else {
+                    showAlert('success', `Attendance recorded for Roll No: ${data.roll_number}`);
+                }
+            } catch (err) {
+                showAlert('error', err.message);
+            }
+        }
+
+        // Local development: Submit simulated attendance bypassing google
+        function submitMockAttendance() {
+            const email = document.getElementById('devEmail').value.trim();
+            if (!email) {
+                showAlert('error', 'Please enter a valid mock email address');
+                return;
+            }
+            if (!sessionToken) {
+                showAlert('error', 'Missing active session token.');
+                return;
+            }
+
+            const mockGoogleToken = `mock_token_${email}`;
+            submitAttendance(mockGoogleToken);
+        }
+
+        // Dark/Light Mode logic
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute("data-theme");
+            let targetTheme = "light";
+            
+            if (currentTheme !== "dark") {
+                targetTheme = "dark";
+            }
+            
+            setTheme(targetTheme);
+        }
+
+        function setTheme(theme) {
+            document.documentElement.setAttribute("data-theme", theme);
+            localStorage.setItem("theme", theme);
+            
+            const themeIcon = document.getElementById("themeIcon");
+            const themeText = document.getElementById("themeText");
+            
+            if (theme === "dark") {
+                themeIcon.innerText = "☀️";
+                themeText.innerText = "Light Mode";
+            } else {
+                themeIcon.innerText = "🌙";
+                themeText.innerText = "Dark Mode";
+            }
+        }
+
+        // Load saved theme preferences
+        const savedTheme = localStorage.getItem("theme") || "light";
+        setTheme(savedTheme);
+    </script>
+</body>
+</html>

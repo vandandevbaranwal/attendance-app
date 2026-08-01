@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CR Portal - Anti-Proxy Attendance</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Google Identity Services (GIS) library for CR authentication -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-color: #0f172a;
+            --text-muted: #64748b;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --success: #10b981;
+            --error: #ef4444;
+            --border-color: #e2e8f0;
+            --shadow: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --gradient-primary: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            --gradient-success: linear-gradient(135deg, #34d399 0%, #059669 100%);
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-color: #f8fafc;
+            --text-muted: #94a3b8;
+            --primary: #3b82f6;
+            --primary-hover: #60a5fa;
+            --border-color: #334155;
+            --shadow: 0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            padding: 2rem;
+            transition: var(--transition);
+        }
+
+        header {
+            max-width: 1200px;
+            margin: 0 auto 2rem auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1.portal-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+        }
+
+        /* Toggle Button */
+        .theme-toggle-btn {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 0.6rem 1.2rem;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+        }
+
+        .theme-toggle-btn:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        /* Login Screen Styles */
+        .login-container {
+            max-width: 480px;
+            margin: 5rem auto 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        /* Layout Grid */
+        .portal-grid {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: none; /* Hidden until verified */
+            grid-template-columns: 1fr 1.5fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 900px) {
+            .portal-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 2rem;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            position: relative;
+        }
+
+        .card-header {
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Form Inputs */
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        label {
+            font-weight: 500;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        select, input[type="date"] {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            border: 1px solid var(--border-color);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            border-radius: 12px;
+            font-size: 0.95rem;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        select:focus, input[type="date"]:focus {
+            border-color: var(--primary);
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: var(--transition);
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--gradient-primary);
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+        }
+
+        .btn-primary:hover {
+            opacity: 0.95;
+            transform: translateY(-2px);
+        }
+
+        .btn-primary:disabled {
+            background: var(--border-color);
+            color: var(--text-muted);
+            box-shadow: none;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            border-color: var(--primary);
+            color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary:disabled {
+            color: var(--text-muted);
+            border-color: var(--border-color);
+            cursor: not-allowed;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            opacity: 0.95;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger:disabled {
+            background: var(--border-color);
+            color: var(--text-muted);
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+
+        /* Session Status Box */
+        .status-box {
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            padding: 1.2rem;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+        }
+
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+        }
+
+        .status-label {
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .status-val {
+            font-weight: 600;
+        }
+
+        .token-val {
+            font-family: monospace;
+            color: var(--primary);
+            font-size: 0.95rem;
+            background: rgba(37, 99, 235, 0.05);
+            padding: 0.1rem 0.4rem;
+            border-radius: 4px;
+        }
+
+        /* Checkbox Switch */
+        .switch-group {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 48px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--border-color);
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--primary);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(24px);
+        }
+
+        /* Report Table Preview */
+        .report-preview-container {
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            overflow: hidden;
+            max-height: 400px;
+            overflow-y: auto;
+            background: var(--bg-color);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+
+        th {
+            background-color: var(--card-bg);
+            color: var(--text-muted);
+            padding: 0.8rem 1rem;
+            font-weight: 600;
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+        }
+
+        td {
+            padding: 0.8rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-color);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:nth-child(even) td {
+            background-color: rgba(0,0,0,0.01);
+        }
+
+        .badge {
+            padding: 0.25rem 0.6rem;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .badge-success {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .badge-error {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--error);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        /* Alert notifications */
+        .alert {
+            padding: 1rem;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            line-height: 1.4;
+            display: none;
+        }
+
+        .alert-success {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+            border: 1px solid var(--success);
+        }
+
+        .alert-error {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--error);
+            border: 1px solid var(--error);
+        }
+
+        /* Dev Test Panel for CR own attendance */
+        .dev-panel {
+            background: var(--bg-color);
+            border: 1px dashed var(--border-color);
+            padding: 1rem;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        .dev-input {
+            width: 100%;
+            padding: 0.6rem 0.8rem;
+            border: 1px solid var(--border-color);
+            background-color: var(--card-bg);
+            color: var(--text-color);
+            border-radius: 10px;
+            font-size: 0.85rem;
+            outline: none;
+        }
+
+        /* Spinner */
+        .spinner {
+            border: 3px solid rgba(0, 0, 0, 0.1);
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border-left-color: var(--primary);
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1 class="portal-title">🎓 Attendance Portal &mdash; CR Console</h1>
+        <div style="display: flex; gap: 1rem; align-items: center;">
+            <button class="btn btn-secondary" id="logoutHeaderBtn" onclick="logout()" style="display: none; padding: 0.5rem 1rem; font-size: 0.85rem;">Logout 🚪</button>
+            <button class="theme-toggle-btn" onclick="toggleTheme()" id="themeToggleBtn">
+                <span id="themeIcon">🌙</span> <span id="themeText">Dark Mode</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- LOGIN SCREEN -->
+    <div class="login-container" id="loginScreen">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">🔐 CR Portal Authentication</h2>
+            </div>
+            <p style="font-size: 0.95rem; color: var(--text-muted); line-height: 1.6; text-align: center;">
+                This portal is restricted to authorized Class Representatives. Please sign in with your student Google Account to continue.
+            </p>
+            
+            <div class="alert" id="loginAlert"></div>
+            
+            <!-- Google GIS Authentication Button -->
+            <div style="display: flex; justify-content: center; width: 100%; margin: 1rem 0;">
+                <div id="g_id_onload"
+                     data-client_id="{{GOOGLE_CLIENT_ID}}"
+                     data-context="signin"
+                     data-ux_mode="popup"
+                     data-callback="handleLoginResponse"
+                     data-auto_prompt="false"
+                     data-prompt="select_account">
+                </div>
+                <div class="g_id_signin"
+                     data-type="standard"
+                     data-shape="pill"
+                     data-theme="outline"
+                     data-text="signin_with"
+                     data-size="large"
+                     data-logo_alignment="left">
+                </div>
+            </div>
+
+            <!-- Dev Local Testing Option for CR login -->
+            <div class="dev-panel">
+                <span style="font-size: 0.75rem; font-weight: 600; color: var(--text-muted);">Developer Local Testing</span>
+                <select class="dev-input" id="devCRSelect">
+                    <option value="2500520200061@ietlucknow.ac.in">CR 1: 2500520200061</option>
+                    <option value="2500520200073@ietlucknow.ac.in">CR 2: 2500520200073</option>
+                    <option value="2500520200001@ietlucknow.ac.in">CR Test: 2500520200001</option>
+                    <option value="2500520200002@ietlucknow.ac.in">Invalid Student: 2500520200002</option>
+                </select>
+                <button class="btn btn-secondary" onclick="loginMockCR()" style="padding: 0.5rem 1rem; font-size: 0.85rem;">Login with Mock CR Account</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN PORTAL SCREEN -->
+    <div class="portal-grid" id="portalScreen">
+        <!-- LEFT COLUMN: SESSION CONTROL & SELF ATTENDANCE -->
+        <div style="display: flex; flex-direction: column; gap: 2rem;">
+            
+            <!-- SESSION MANAGER CARD -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">⚙️ Session Controller</h2>
+                </div>
+                
+                <div class="form-group">
+                    <label for="subjectSelect">Select Subject</label>
+                    <select id="subjectSelect">
+                        <option value="" disabled selected>Loading subjects...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="sessionDate">Session Date</label>
+                    <input type="date" id="sessionDate">
+                </div>
+                
+                <div style="display: flex; gap: 1rem;">
+                    <button class="btn btn-primary" id="startSessionBtn" onclick="startSession()" style="flex: 1;">Start Session</button>
+                    <button class="btn btn-danger" id="stopSessionBtn" onclick="stopSession()" style="flex: 1;" disabled>Stop Session</button>
+                </div>
+                
+                <div class="status-box">
+                    <div class="status-row">
+                        <span class="status-label">Status:</span>
+                        <span class="status-val" id="sessionStatus">Checking...</span>
+                    </div>
+                    <div class="status-row" id="activeSubjRow" style="display: none;">
+                        <span class="status-label">Active Subject:</span>
+                        <span class="status-val" id="sessionSubject" style="text-align: right; max-width: 70%;">None</span>
+                    </div>
+                    <div class="status-row" id="activeTokRow" style="display: none;">
+                        <span class="status-label">Rolling Token:</span>
+                        <span class="status-val token-val" id="sessionToken">None</span>
+                    </div>
+                    <div class="status-row" id="timerRow" style="display: none;">
+                        <span class="status-label">Rolling in:</span>
+                        <span class="status-val" id="sessionTimer">0s</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- CR SELF-ATTENDANCE CARD -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">🙋‍♂️ Mark My Attendance</h2>
+                </div>
+                <p style="font-size: 0.9rem; color: var(--text-muted); line-height: 1.5;">
+                    As an authorized Class Representative, click below to mark your own attendance for the active classroom session directly.
+                </p>
+                
+                <div class="alert" id="selfAlert"></div>
+                
+                <button class="btn btn-primary" id="markSelfBtn" onclick="markSelfAttendance()" style="background: var(--gradient-success);">
+                    ✅ Mark My Attendance (Whitelisted CR)
+                </button>
+            </div>
+            
+        </div>
+
+        <!-- RIGHT COLUMN: REPORT EXTRACTOR -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">📊 Attendance Report Extractor</h2>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    <label for="reportDate">Select Date</label>
+                    <input type="date" id="reportDate">
+                </div>
+                <div class="form-group">
+                    <label for="reportSubject">Select Subject</label>
+                    <select id="reportSubject">
+                        <option value="" disabled selected>Loading...</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                <button class="btn btn-primary" onclick="loadReportPreview()" id="previewBtn">
+                    🔍 Load Preview
+                </button>
+                
+                <label class="switch-group">
+                    <span style="font-size: 0.9rem; font-weight: 500;">Export Only Present Students</span>
+                    <span class="switch">
+                        <input type="checkbox" id="onlyPresentCheck" checked>
+                        <span class="slider"></span>
+                    </span>
+                </label>
+            </div>
+            
+            <!-- Live Preview Table -->
+            <div style="display: flex; flex-direction: column; gap: 0.8rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-weight: 600; font-size: 0.95rem;">Preview Table</span>
+                    <span id="previewStats" style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">No data loaded</span>
+                </div>
+                
+                <div class="report-preview-container">
+                    <table id="previewTable">
+                        <thead>
+                            <tr>
+                                <th>S.No.</th>
+                                <th>Roll No (Last 2)</th>
+                                <th>Student Name</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                                    Click "Load Preview" to fetch attendance records.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <button class="btn btn-primary" onclick="downloadPdfReport()" id="downloadBtn" style="background: var(--gradient-success);">
+                📄 Download PDF Attendance Sheet
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let subjectsList = [];
+        let activeSessionToken = "";
+        let remainingSeconds = 0;
+
+        // Fetch auth header with CR token
+        function getAuthHeaders() {
+            const token = sessionStorage.getItem("cr_token");
+            return token ? { "Authorization": `Bearer ${token}` } : {};
+        }
+
+        // Display login messages
+        function showLoginAlert(type, msg) {
+            const el = document.getElementById("loginAlert");
+            el.className = `alert alert-${type}`;
+            el.innerText = msg;
+            el.style.display = "block";
+        }
+
+        // Verify CR Token with server
+        async function verifyCRToken(token) {
+            try {
+                const res = await fetch("/verify-cr", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ google_token: token })
+                });
+                const data = await res.json();
+                
+                if (res.ok && data.status === "success") {
+                    sessionStorage.setItem("cr_token", token);
+                    showPortal();
+                } else {
+                    throw new Error(data.detail || "You are not whitelisted as a Class Representative.");
+                }
+            } catch (err) {
+                sessionStorage.removeItem("cr_token");
+                showLoginAlert("error", err.message);
+            }
+        }
+
+        // Google Authentication Login callback
+        function handleLoginResponse(response) {
+            verifyCRToken(response.credential);
+        }
+
+        // Mock sign-in (for development)
+        function loginMockCR() {
+            const email = document.getElementById("devCRSelect").value;
+            const mockToken = `mock_token_${email}`;
+            verifyCRToken(mockToken);
+        }
+
+        // Show the portal screen
+        async function showPortal() {
+            document.getElementById("loginScreen").style.display = "none";
+            document.getElementById("portalScreen").style.display = "grid";
+            document.getElementById("logoutHeaderBtn").style.display = "block";
+            
+            await fetchSubjects();
+            await pollActiveSession();
+        }
+
+        // Logout
+        function logout() {
+            sessionStorage.removeItem("cr_token");
+            window.location.reload();
+        }
+
+        // Check if already authenticated on load
+        window.addEventListener("DOMContentLoaded", () => {
+            const savedToken = sessionStorage.getItem("cr_token");
+            if (savedToken) {
+                verifyCRToken(savedToken);
+            }
+        });
+
+        // Set default date to local today
+        function setDefaultDate() {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            const dateStr = `${year}-${month}-${day}`;
+            document.getElementById("reportDate").value = dateStr;
+            const sessionDateEl = document.getElementById("sessionDate");
+            if (sessionDateEl) sessionDateEl.value = dateStr;
+        }
+
+        // Fetch subjects
+        async function fetchSubjects() {
+            try {
+                const res = await fetch("/subjects");
+                const data = await res.json();
+                subjectsList = data.subjects;
+                
+                // Populate selects
+                const select1 = document.getElementById("subjectSelect");
+                const select2 = document.getElementById("reportSubject");
+                
+                select1.innerHTML = "";
+                select2.innerHTML = "";
+                
+                subjectsList.forEach((sub, idx) => {
+                    const opt1 = document.createElement("option");
+                    opt1.value = sub;
+                    opt1.textContent = sub;
+                    select1.appendChild(opt1);
+                    
+                    const opt2 = document.createElement("option");
+                    opt2.value = sub;
+                    opt2.textContent = sub;
+                    if(idx === 0) opt2.selected = true;
+                    select2.appendChild(opt2);
+                });
+            } catch (err) {
+                console.error("Error fetching subjects:", err);
+            }
+        }
+
+        // Start Attendance Session
+        async function startSession() {
+            const subject = document.getElementById("subjectSelect").value;
+            const sessionDate = document.getElementById("sessionDate").value;
+            if(!subject || !sessionDate) {
+                alert("Please select both a subject and a date.");
+                return;
+            }
+            
+            try {
+                const res = await fetch("/start-session", {
+                    method: "POST",
+                    headers: { 
+                        "Content-Type": "application/json",
+                        ...getAuthHeaders()
+                    },
+                    body: JSON.stringify({ subject, session_date: sessionDate })
+                });
+                const data = await res.json();
+                if(res.ok && data.status === "success") {
+                    // Sync the report extractor inputs automatically for convenience!
+                    document.getElementById("reportSubject").value = subject;
+                    document.getElementById("reportDate").value = sessionDate;
+                    
+                    pollActiveSession();
+                    // Load report preview immediately!
+                    loadReportPreview();
+                } else {
+                    alert(data.detail || "Error starting session");
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // Stop Attendance Session
+        async function stopSession() {
+            try {
+                const res = await fetch("/stop-session", { 
+                    method: "POST",
+                    headers: getAuthHeaders()
+                });
+                const data = await res.json();
+                if(res.ok && data.status === "success") {
+                    pollActiveSession();
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // Poll Active Session status
+        async function pollActiveSession() {
+            // Only poll if verified portal is showing
+            if (document.getElementById("portalScreen").style.display !== "grid") return;
+
+            try {
+                const res = await fetch("/active-session");
+                const data = await res.json();
+                
+                const statusSpan = document.getElementById("sessionStatus");
+                const startBtn = document.getElementById("startSessionBtn");
+                const stopBtn = document.getElementById("stopSessionBtn");
+                const activeSubjRow = document.getElementById("activeSubjRow");
+                const activeTokRow = document.getElementById("activeTokRow");
+                const timerRow = document.getElementById("timerRow");
+                
+                if (data.is_active) {
+                    statusSpan.innerHTML = "<font color='var(--success)'>● Active</font>";
+                    startBtn.disabled = true;
+                    stopBtn.disabled = false;
+                    
+                    activeSubjRow.style.display = "flex";
+                    activeTokRow.style.display = "flex";
+                    timerRow.style.display = "flex";
+                    
+                    document.getElementById("sessionSubject").innerText = data.subject;
+                    document.getElementById("sessionToken").innerText = data.token;
+                    activeSessionToken = data.token;
+                    
+                    remainingSeconds = data.remaining_seconds;
+                    document.getElementById("sessionTimer").innerText = `${remainingSeconds}s`;
+                } else {
+                    statusSpan.innerHTML = "<font color='var(--text-muted)'>● Inactive</font>";
+                    startBtn.disabled = false;
+                    stopBtn.disabled = true;
+                    
+                    activeSubjRow.style.display = "none";
+                    activeTokRow.style.display = "none";
+                    timerRow.style.display = "none";
+                    activeSessionToken = "";
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // Load Live Attendance Preview
+        async function loadReportPreview() {
+            const date = document.getElementById("reportDate").value;
+            const subject = document.getElementById("reportSubject").value;
+            const previewBtn = document.getElementById("previewBtn");
+            const tbody = document.querySelector("#previewTable tbody");
+            const statsSpan = document.getElementById("previewStats");
+            
+            if(!date || !subject) {
+                alert("Please select both a date and a subject.");
+                return;
+            }
+            
+            previewBtn.disabled = true;
+            previewBtn.innerHTML = '<span class="spinner"></span> Loading...';
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 2rem;">Loading records...</td></tr>';
+            
+            try {
+                const res = await fetch(`/attendance-report?date=${date}&subject=${encodeURIComponent(subject)}`, {
+                    headers: getAuthHeaders()
+                });
+                
+                if(!res.ok) {
+                    const data = await res.json();
+                    throw new Error(data.detail || "Failed to load report data");
+                }
+                const data = await res.json();
+                
+                tbody.innerHTML = "";
+                if(data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 2rem;">No students found in the whitelist. Run seed.py first.</td></tr>';
+                    statsSpan.innerText = "0 students";
+                    return;
+                }
+                
+                let presentCount = 0;
+                data.forEach(s => {
+                    if(s.status === "Present") presentCount++;
+                    const row = document.createElement("tr");
+                    const statusBadgeClass = s.status === "Present" ? "badge-success" : "badge-error";
+                    
+                    row.innerHTML = `
+                        <td>${s.s_no}</td>
+                        <td style="font-weight: 600;">${s.roll_number_last2}</td>
+                        <td>${s.name}</td>
+                        <td><span class="badge ${statusBadgeClass}">${s.status}</span></td>
+                    `;
+                    tbody.appendChild(row);
+                });
+                
+                const pct = (presentCount / data.length * 100).toFixed(1);
+                statsSpan.innerText = `Present: ${presentCount}/${data.length} (${pct}%)`;
+            } catch (err) {
+                console.error(err);
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--error); padding: 2rem;">Error: ${err.message}</td></tr>`;
+            } finally {
+                previewBtn.disabled = false;
+                previewBtn.innerHTML = '🔍 Load Preview';
+            }
+        }
+
+        // Download PDF
+        function downloadPdfReport() {
+            const date = document.getElementById("reportDate").value;
+            const subject = document.getElementById("reportSubject").value;
+            const onlyPresent = document.getElementById("onlyPresentCheck").checked;
+            
+            if(!date || !subject) {
+                alert("Please select both a date and a subject.");
+                return;
+            }
+            
+            const token = sessionStorage.getItem("cr_token");
+            const url = `/download-pdf?date=${date}&subject=${encodeURIComponent(subject)}&only_present=${onlyPresent}&google_token=${token}`;
+            window.location.href = url;
+        }
+
+        // Show self-marking alerts
+        function showSelfAlert(type, msg) {
+            const el = document.getElementById("selfAlert");
+            el.className = `alert alert-${type}`;
+            el.innerText = msg;
+            el.style.display = "block";
+            setTimeout(() => { el.style.display = "none"; }, 5000);
+        }
+
+        // Mark CR's own attendance
+        async function markSelfAttendance() {
+            if(!activeSessionToken) {
+                showSelfAlert("error", "No active attendance session. Start a session first.");
+                return;
+            }
+            const token = sessionStorage.getItem("cr_token");
+            try {
+                const res = await fetch("/mark-attendance", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ token: activeSessionToken, google_token: token })
+                });
+                const data = await res.json();
+                
+                if(!res.ok) throw new Error(data.detail || "Verification failed");
+                
+                if (data.status === "already_marked") {
+                    showSelfAlert("success", data.message);
+                } else {
+                    showSelfAlert("success", `Success! Your attendance is recorded. Roll No: ${data.roll_number}`);
+                }
+                // Automatically refresh the preview table!
+                loadReportPreview();
+            } catch (err) {
+                showSelfAlert("error", err.message);
+            }
+        }
+
+        // Ticking loop for session countdown
+        function startTimerTick() {
+            setInterval(() => {
+                if (remainingSeconds > 0) {
+                    remainingSeconds--;
+                    const timerEl = document.getElementById("sessionTimer");
+                    if (timerEl) timerEl.innerText = `${remainingSeconds}s`;
+                }
+            }, 1000);
+            
+            // Poll session status every 2 seconds
+            setInterval(pollActiveSession, 2000);
+        }
+
+        // Dark/Light Mode Theme
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute("data-theme");
+            let targetTheme = "light";
+            if (currentTheme !== "dark") targetTheme = "dark";
+            setTheme(targetTheme);
+        }
+
+        function setTheme(theme) {
+            document.documentElement.setAttribute("data-theme", theme);
+            localStorage.setItem("theme", theme);
+            
+            const themeIcon = document.getElementById("themeIcon");
+            const themeText = document.getElementById("themeText");
+            
+            if (theme === "dark") {
+                themeIcon.innerText = "☀️";
+                themeText.innerText = "Light Mode";
+            } else {
+                themeIcon.innerText = "🌙";
+                themeText.innerText = "Dark Mode";
+            }
+        }
+
+        // Initialize portal
+        const savedTheme = localStorage.getItem("theme") || "light";
+        setTheme(savedTheme);
+        setDefaultDate();
+        startTimerTick();
+    </script>
+</body>
+</html>

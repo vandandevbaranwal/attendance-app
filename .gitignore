@@ -1,0 +1,25 @@
+# Virtual environment
+venv/
+ENV/
+env/
+.env
+
+# Databases
+*.db
+attendance.db
+
+# Python bytecode / cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# System / IDE files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Temp reports generated during testing
+scratch/*.pdf
+scratch/test_report.pdf
