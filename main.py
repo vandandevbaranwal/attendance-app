@@ -3,7 +3,7 @@ import uuid
 import io
 from datetime import datetime, timedelta
 from fastapi import FastAPI, Depends, HTTPException, status, Request, Header
-from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -422,6 +422,9 @@ def generate_student_receipt_pdf(receipt_data: dict):
 
 @app.on_event("startup")
 def startup_event():
+    from database import Base, engine
+    Base.metadata.create_all(bind=engine)
+    
     local_ip = get_local_ip()
     print("\n" + "="*70)
     print("  ANTI-PROXY ATTENDANCE SYSTEM STARTED")
@@ -436,7 +439,7 @@ def startup_event():
 
 @app.get("/")
 def read_root():
-    return {"message": "Anti-Proxy College Attendance API. Visit /static/dashboard.html for the classroom dashboard."}
+    return RedirectResponse(url="/static/dashboard.html")
 
 @app.get("/subjects")
 def get_subjects():
