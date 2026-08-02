@@ -25,3 +25,10 @@ scratch/*.pdf
 scratch/*.jpg
 scratch/test_report.pdf
 
+# Sensitive Student Data Lists
+EE'29 STUDENT LIST.xlsx
+*.xlsx
+*.xls
+*.csv
+
+
