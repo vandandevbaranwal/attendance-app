@@ -1,7 +1,8 @@
 import os
 import uuid
 import io
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 from fastapi import FastAPI, Depends, HTTPException, status, Request, Header
 from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -23,9 +24,13 @@ from reportlab.lib import colors
 app = FastAPI(title="Anti-Proxy Attendance System")
 
 # Configure CORS middleware
+allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "http://localhost:8000,http://127.0.0.1:8000")
+allowed_origins = [origin.strip() for origin in allowed_origins_env.split(",") if origin.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -95,21 +100,23 @@ def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
     
     return R * c
 
-def to_local_time(utc_dt: datetime) -> datetime:
-    # Dynamically shift UTC to the server's local timezone
-    now = datetime.now()
-    utcnow = datetime.utcnow()
-    offset = now - utcnow
-    return utc_dt + offset
+try:
+    IST_TZ = ZoneInfo("Asia/Kolkata")
+except Exception:
+    IST_TZ = timezone(timedelta(hours=5, minutes=30))
 
-def verify_cr_token(authorization: str = None, token_param: str = None) -> str:
+def to_local_time(utc_dt: datetime) -> datetime:
+    # Convert UTC datetime to IST (Asia/Kolkata) local timezone
+    if utc_dt.tzinfo is None:
+        utc_dt = utc_dt.replace(tzinfo=timezone.utc)
+    return utc_dt.astimezone(IST_TZ).replace(tzinfo=None)
+
+def verify_cr_token(authorization: str = Header(None)) -> str:
     google_token = None
     if authorization:
         token_type, _, val = authorization.partition(" ")
         if token_type.lower() == "bearer" and val:
             google_token = val
-    if not google_token and token_param:
-        google_token = token_param
         
     if not google_token:
         raise HTTPException(status_code=401, detail="Authentication token required")
@@ -534,7 +541,8 @@ def get_active_session(db: Session = Depends(get_db)):
     }
 
 @app.get("/generate-qr-token")
-def generate_qr_token(request: Request, db: Session = Depends(get_db)):
+def generate_qr_token(request: Request, authorization: str = Header(None), db: Session = Depends(get_db)):
+    verify_cr_token(authorization)
     # Legacy wrapper for backward compatibility with automated tests
     session = db.query(ClassroomSession).filter(ClassroomSession.is_active == 1).first()
     now = datetime.utcnow()
@@ -664,8 +672,7 @@ def mark_attendance(payload: AttendanceRequest, db: Session = Depends(get_db)):
     local_attendance_dt = datetime.combine(session_date_obj, local_now.time())
     
     # Convert local back to UTC
-    offset = datetime.now() - datetime.utcnow()
-    attendance_timestamp = local_attendance_dt - offset
+    attendance_timestamp = local_attendance_dt.replace(tzinfo=IST_TZ).astimezone(timezone.utc).replace(tzinfo=None)
     
     # Check if attendance already marked for this subject on this session_date
     student_attendances = db.query(Attendance).filter(
@@ -751,10 +758,10 @@ def get_attendance_report(date: str, subject: str, authorization: str = Header(N
     return report
 
 @app.get("/download-pdf")
-def download_pdf(date: str, subject: str, only_present: bool = True, google_token: str = None, authorization: str = Header(None), db: Session = Depends(get_db)):
-    verify_cr_token(authorization, google_token)
+def download_pdf(date: str, subject: str, only_present: bool = True, authorization: str = Header(None), db: Session = Depends(get_db)):
+    verify_cr_token(authorization)
     
-    report = get_attendance_report(date, subject, authorization or f"Bearer {google_token}", db)
+    report = get_attendance_report(date, subject, authorization, db)
     pdf_buffer = generate_pdf_report(date, subject, report, only_present)
     
     safe_subject = "".join([c if c.isalnum() else "_" for c in subject])

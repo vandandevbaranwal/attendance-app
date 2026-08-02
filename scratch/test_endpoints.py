@@ -137,20 +137,37 @@ def run_tests():
     assert student_02["status"] == "Present"
     print(f"   [OK] Report blocked unauthorized access. Verified student 02 is marked {student_02['status']}.")
 
-    # 9. Test Download PDF Security
+    # 9. Test Download PDF Security (Header Authorization only)
     print("\n9. Testing GET /download-pdf (Security Checks)...")
-    # No Auth Header or Query Param
+    # No Auth Header
     res = client.get(f"/download-pdf?date={today_str}&subject={target_subject}&only_present=true")
     assert res.status_code == 401
-    # Invalid CR Query Param
-    res = client.get(f"/download-pdf?date={today_str}&subject={target_subject}&only_present=true&google_token={invalid_cr_token}")
-    assert res.status_code == 403
-    # Valid CR Query Param
+    # Query Param token ignored/rejected
     res = client.get(f"/download-pdf?date={today_str}&subject={target_subject}&only_present=true&google_token={valid_cr_token}")
+    assert res.status_code == 401
+    # Invalid CR Auth Header
+    res = client.get(f"/download-pdf?date={today_str}&subject={target_subject}&only_present=true", headers=invalid_headers)
+    assert res.status_code == 403
+    # Valid CR Auth Header
+    res = client.get(f"/download-pdf?date={today_str}&subject={target_subject}&only_present=true", headers=valid_headers)
     assert res.status_code == 200
     assert res.headers["content-type"] == "application/pdf"
     assert res.content.startswith(b"%PDF-")
-    print(f"   [OK] PDF download blocked unauthorized access, and succeeded with valid CR token parameter.")
+    print(f"   [OK] PDF download blocked unauthorized access & query tokens, and succeeded with Authorization header.")
+
+    # 9b. Test Generate QR Token Security
+    print("\n9b. Testing GET /generate-qr-token (Security Checks)...")
+    # No Auth Header -> 401
+    res = client.get("/generate-qr-token")
+    assert res.status_code == 401
+    # Invalid CR Auth Header -> 403
+    res = client.get("/generate-qr-token", headers=invalid_headers)
+    assert res.status_code == 403
+    # Valid CR Auth Header -> 200
+    res = client.get("/generate-qr-token", headers=valid_headers)
+    assert res.status_code == 200
+    assert "token" in res.json()
+    print("   [OK] /generate-qr-token blocked unauthorized requests and verified CR authorization.")
 
     # 10. Test Stop Session Security
     print("\n10. Testing POST /stop-session (Security Checks)...")
