@@ -394,7 +394,7 @@ def generate_student_receipt_pdf(receipt_data: dict):
         [Paragraph("Roll Number (2 Digits)", label_style), Paragraph(receipt_data.get("roll_number_last2", "N/A"), roll2_style)],
         [Paragraph("Email Address", label_style), Paragraph(receipt_data.get("email", "N/A"), val_style)],
         [Paragraph("Subject", label_style), Paragraph(receipt_data.get("subject", "N/A"), val_style)],
-        [Paragraph("Date & Time", label_style), Paragraph(receipt_data.get("timestamp", "N/A"), val_style)],
+        [Paragraph("Date", label_style), Paragraph(receipt_data.get("session_date", receipt_data.get("date", "N/A")), val_style)],
         [Paragraph("Verification Status", label_style), Paragraph("&check; PRESENT & VERIFIED", status_style)]
     ]
 
@@ -412,7 +412,7 @@ def generate_student_receipt_pdf(receipt_data: dict):
     t.setStyle(t_style)
     story.append(t)
     story.append(Spacer(1, 20))
-    story.append(Paragraph("This attendance record was authenticated via Anti-Proxy Geofencing & Google Account Verification.", footer_style))
+    story.append(Paragraph("This attendance record was authenticated via College Google Account Verification.", footer_style))
     story.append(Paragraph("System Generated Document &bull; No physical signature required.", footer_style))
 
     doc.build(story)

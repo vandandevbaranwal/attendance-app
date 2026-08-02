@@ -59,8 +59,8 @@ def generate_scratchpad_receipts():
             ("Roll Number (2 Digits):", f"Roll #{sample_data['roll_number_last2']}", '#6366f1'),
             ("Email Address:", sample_data['email'], '#334155'),
             ("Subject:", sample_data['subject'], '#0f172a'),
-            ("Date & Time:", sample_data['timestamp'], '#334155'),
-            ("Verification Status:", "[VERIFIED] PRESENT & VERIFIED", '#059669')
+            ("Date:", sample_data['session_date'], '#334155'),
+            ("Verification Status:", "✓ PRESENT & VERIFIED", '#059669')
         ]
         
         y = 300
@@ -71,8 +71,8 @@ def generate_scratchpad_receipts():
             y += 65
 
         # Footer
-        draw.text((400, 830), "Verified via Anti-Proxy Classroom Geofence & Google Authentication", fill='#94a3b8', anchor='ms', font_size=14)
-        draw.text((400, 860), "This is an official system generated attendance receipt.", fill='#94a3b8', anchor='ms', font_size=14)
+        draw.text((400, 830), "This attendance record was authenticated via College Google Account Verification.", fill='#94a3b8', anchor='ms', font_size=14)
+        draw.text((400, 860), "System Generated Document • No physical signature required.", fill='#94a3b8', anchor='ms', font_size=14)
 
         jpg_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sample_attendance_receipt_01.jpg")
         img.save(jpg_path, "JPEG", quality=95)

@@ -495,8 +495,8 @@
                     <span class="receipt-val" id="recSubject">-</span>
                 </div>
                 <div class="receipt-row">
-                    <span class="receipt-label">Date & Time:</span>
-                    <span class="receipt-val" id="recTimestamp">-</span>
+                    <span class="receipt-label">Date:</span>
+                    <span class="receipt-val" id="recSessionDate">-</span>
                 </div>
                 <div class="receipt-row">
                     <span class="receipt-label">Receipt Ref:</span>
@@ -630,7 +630,7 @@
             document.getElementById('recRollFull').innerText = (data.roll_number || '') + ' ';
             document.getElementById('recRoll2').innerText = `(Roll #${data.roll_number_last2 || '--'})`;
             document.getElementById('recSubject').innerText = data.subject || 'Classroom Session';
-            document.getElementById('recTimestamp').innerText = data.timestamp || new Date().toLocaleString();
+            document.getElementById('recSessionDate').innerText = data.session_date || (data.timestamp ? data.timestamp.split(' ')[0] : new Date().toISOString().split('T')[0]);
             document.getElementById('recRefId').innerText = data.receipt_id || 'N/A';
         }
 
@@ -701,13 +701,14 @@
             }
 
             // Receipt Content Rows
+            const dateStr = lastReceiptData.session_date || (lastReceiptData.timestamp ? lastReceiptData.timestamp.split(' ')[0] : 'N/A');
             const rows = [
                 { label: 'Student Name', val: lastReceiptData.name || 'N/A', isBold: true },
                 { label: 'Full Roll Number', val: lastReceiptData.roll_number || 'N/A', isBold: false },
                 { label: 'Roll Number (2 Digits)', val: `Roll #${lastReceiptData.roll_number_last2 || 'N/A'}`, isHighlight: true },
                 { label: 'Email Address', val: lastReceiptData.email || 'N/A', isBold: false },
                 { label: 'Subject', val: lastReceiptData.subject || 'N/A', isBold: true },
-                { label: 'Date & Time', val: lastReceiptData.timestamp || 'N/A', isBold: false },
+                { label: 'Date', val: dateStr, isBold: false },
                 { label: 'Verification Status', val: '✓ PRESENT & VERIFIED', isGreen: true }
             ];
 
@@ -750,8 +751,8 @@
             ctx.fillStyle = '#94a3b8';
             ctx.font = 'italic 14px Inter, sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText('Verified via Anti-Proxy Classroom Geofence & Google Authentication', 400, 840);
-            ctx.fillText('This is an official system generated attendance receipt.', 400, 870);
+            ctx.fillText('This attendance record was authenticated via College Google Account Verification.', 400, 845);
+            ctx.fillText('System Generated Document • No physical signature required.', 400, 875);
 
             // Trigger Download
             const link = document.createElement('a');
