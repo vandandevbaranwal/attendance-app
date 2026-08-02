@@ -773,7 +773,13 @@ def download_pdf(date: str, subject: str, only_present: bool = True, authorizati
     return StreamingResponse(pdf_buffer, media_type="application/pdf", headers=headers)
 
 @app.get("/download-student-receipt-pdf")
-def download_student_receipt_pdf(google_token: str, db: Session = Depends(get_db)):
+def download_student_receipt_pdf(authorization: str = Header(None), db: Session = Depends(get_db)):
+    google_token = None
+    if authorization:
+        token_type, _, val = authorization.partition(" ")
+        if token_type.lower() == "bearer" and val:
+            google_token = val
+
     if not google_token:
         raise HTTPException(status_code=401, detail="Google Authentication token is required")
         

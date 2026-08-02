@@ -761,13 +761,34 @@
             link.click();
         }
 
-        function downloadReceiptPDF() {
+        async function downloadReceiptPDF() {
             if (!lastGoogleToken) {
                 showAlert('error', 'Authentication session token required to download PDF receipt.');
                 return;
             }
-            const pdfUrl = `/download-student-receipt-pdf?google_token=${encodeURIComponent(lastGoogleToken)}`;
-            window.open(pdfUrl, '_blank');
+            try {
+                const response = await fetch('/download-student-receipt-pdf', {
+                    headers: {
+                        'Authorization': `Bearer ${lastGoogleToken}`
+                    }
+                });
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    showAlert('error', errData.detail || 'Failed to download receipt PDF');
+                    return;
+                }
+                const blob = await response.blob();
+                const blobUrl = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = blobUrl;
+                link.download = `attendance_receipt_${lastReceiptData ? lastReceiptData.roll_number_last2 || 'student' : 'student'}.pdf`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(blobUrl);
+            } catch (e) {
+                showAlert('error', 'Network error while downloading PDF receipt.');
+            }
         }
 
 

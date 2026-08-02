@@ -224,13 +224,21 @@ def run_tests():
     })
     assert res.status_code == 200
     # Clean stop
-    # 12. Test Student Receipt PDF Generation
-    print("\n12. Testing GET /download-student-receipt-pdf...")
+    # 12. Test Student Receipt PDF Generation (Header Security Checks)
+    print("\n12. Testing GET /download-student-receipt-pdf (Security Checks)...")
+    # No auth header -> 401
+    res = client.get("/download-student-receipt-pdf")
+    assert res.status_code == 401
+    # Query param token ignored/rejected -> 401
     res = client.get(f"/download-student-receipt-pdf?google_token=mock_token_{student_email}")
+    assert res.status_code == 401
+    # Valid Bearer Header -> 200
+    student_headers = {"Authorization": f"Bearer mock_token_{student_email}"}
+    res = client.get("/download-student-receipt-pdf", headers=student_headers)
     assert res.status_code == 200
     assert res.headers["content-type"] == "application/pdf"
     assert res.content.startswith(b"%PDF-")
-    print("    [OK] Student receipt PDF downloaded successfully and verified.")
+    print("    [OK] Student receipt PDF download blocked query params and verified Authorization header.")
 
     print("\n=========================================")
     print("ALL SECURED TESTS PASSED SUCCESSFULLY!")
