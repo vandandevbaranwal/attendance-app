@@ -22,4 +22,6 @@ Thumbs.db
 
 # Temp reports generated during testing
 scratch/*.pdf
+scratch/*.jpg
 scratch/test_report.pdf
+

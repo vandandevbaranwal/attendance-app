@@ -102,7 +102,10 @@ def run_tests():
     res_data = res.json()
     assert res_data["status"] == "success"
     assert res_data["roll_number"] == "2500520200002"
-    print(f"   [OK] Attendance marked successfully for Roll No: {res_data['roll_number']}")
+    assert res_data["roll_number_last2"] == "02"
+    assert "name" in res_data and len(res_data["name"]) > 0
+    assert "receipt_id" in res_data
+    print(f"   [OK] Attendance marked for {res_data['name']} (Roll: {res_data['roll_number']}, 2-digit: {res_data['roll_number_last2']}, Receipt: {res_data['receipt_id']})")
 
     # 7. Test Duplicate Attendance Prevention
     print("\n7. Testing POST /mark-attendance (Duplicate Prevention)...")
@@ -113,7 +116,8 @@ def run_tests():
     assert res.status_code == 200
     res_data = res.json()
     assert res_data["status"] == "already_marked"
-    print(f"   [OK] Duplicate attendance prevented correctly.")
+    assert res_data["roll_number_last2"] == "02"
+    print(f"   [OK] Duplicate attendance prevented correctly with student details returned.")
 
     # 8. Test Attendance Report Security
     today_str = datetime.now().strftime("%Y-%m-%d")
@@ -203,12 +207,18 @@ def run_tests():
     })
     assert res.status_code == 200
     # Clean stop
-    client.post("/stop-session", headers=valid_headers)
-    print("   [OK] Geofencing successfully blocked distant users and accepted close users.")
+    # 12. Test Student Receipt PDF Generation
+    print("\n12. Testing GET /download-student-receipt-pdf...")
+    res = client.get(f"/download-student-receipt-pdf?google_token=mock_token_{student_email}")
+    assert res.status_code == 200
+    assert res.headers["content-type"] == "application/pdf"
+    assert res.content.startswith(b"%PDF-")
+    print("    [OK] Student receipt PDF downloaded successfully and verified.")
 
     print("\n=========================================")
     print("ALL SECURED TESTS PASSED SUCCESSFULLY!")
     print("=========================================")
+
 
 if __name__ == "__main__":
     run_tests()

@@ -297,6 +297,117 @@
             to { opacity: 1; transform: translateY(0) scale(1); }
         }
 
+        /* Receipt Card Container */
+        .receipt-card {
+            display: none;
+            width: 100%;
+            background: var(--bg-card-solid);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 1.5rem;
+            text-align: left;
+            box-shadow: var(--shadow-md);
+            margin-top: 1rem;
+            animation: slideDown 0.4s ease;
+        }
+
+        .receipt-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px dashed var(--border-color);
+            padding-bottom: 0.8rem;
+            margin-bottom: 1rem;
+        }
+
+        .receipt-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--accent);
+        }
+
+        .receipt-status-badge {
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+            font-size: 0.78rem;
+            font-weight: 700;
+            padding: 0.3rem 0.75rem;
+            border-radius: 100px;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .receipt-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.65rem;
+            font-size: 0.88rem;
+        }
+
+        .receipt-label {
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .receipt-val {
+            font-weight: 600;
+            color: var(--text-main);
+            text-align: right;
+        }
+
+        .roll-highlight {
+            font-weight: 800;
+            color: var(--accent);
+            background: var(--accent-glow);
+            padding: 0.15rem 0.5rem;
+            border-radius: 6px;
+            font-size: 0.95rem;
+        }
+
+        .receipt-actions {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1.25rem;
+        }
+
+        .btn-action {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            padding: 0.7rem 1rem;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            border: 1px solid var(--border-color);
+            background: var(--bg-input);
+            color: var(--text-main);
+            transition: var(--transition);
+            text-decoration: none;
+        }
+
+        .btn-action:hover {
+            border-color: var(--accent);
+            background: var(--accent-glow);
+            transform: translateY(-1px);
+        }
+
+        .btn-primary-action {
+            background: var(--gradient-accent);
+            color: white;
+            border: none;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+        }
+
+        .btn-primary-action:hover {
+            box-shadow: 0 6px 18px rgba(99, 102, 241, 0.4);
+            transform: translateY(-1px);
+            color: white;
+        }
+
         /* Footer branding */
         .footer-brand {
             margin-top: 2rem;
@@ -362,8 +473,50 @@
                 </button>
             </div>
 
+            <!-- Attendance Receipt Card -->
+            <div class="receipt-card" id="receiptCard">
+                <div class="receipt-header">
+                    <span class="receipt-title">Attendance Receipt</span>
+                    <span class="receipt-status-badge">✓ RECORDED</span>
+                </div>
+                <div class="receipt-row">
+                    <span class="receipt-label">Student Name:</span>
+                    <span class="receipt-val" id="recStudentName">-</span>
+                </div>
+                <div class="receipt-row">
+                    <span class="receipt-label">Roll Number:</span>
+                    <span class="receipt-val">
+                        <span id="recRollFull">-</span>
+                        <span class="roll-highlight" id="recRoll2">#--</span>
+                    </span>
+                </div>
+                <div class="receipt-row">
+                    <span class="receipt-label">Subject:</span>
+                    <span class="receipt-val" id="recSubject">-</span>
+                </div>
+                <div class="receipt-row">
+                    <span class="receipt-label">Date & Time:</span>
+                    <span class="receipt-val" id="recTimestamp">-</span>
+                </div>
+                <div class="receipt-row">
+                    <span class="receipt-label">Receipt Ref:</span>
+                    <span class="receipt-val" id="recRefId" style="font-family: monospace; font-size: 0.8rem;">-</span>
+                </div>
+                <div class="receipt-actions">
+                    <button class="btn-action btn-primary-action" onclick="downloadReceiptJPG()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        Download JPG
+                    </button>
+                    <button class="btn-action" onclick="downloadReceiptPDF()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                        Download PDF
+                    </button>
+                </div>
+            </div>
+
         </div>
     </div>
+
 
     <div class="footer-brand">IET Lucknow — Electrical Engineering '29</div>
 
@@ -430,8 +583,12 @@
             }
         }
 
+        let lastReceiptData = null;
+        let lastGoogleToken = null;
+
         // Submits the registration request to FastAPI
         async function submitAttendance(googleToken, lat = null, lon = null) {
+            lastGoogleToken = googleToken;
             try {
                 const response = await fetch('/mark-attendance', {
                     method: 'POST',
@@ -452,15 +609,166 @@
                     throw new Error(data.detail || 'Failed to record attendance');
                 }
 
+                lastReceiptData = data;
+
                 if (data.status === 'already_marked') {
                     showAlert('success', data.message);
                 } else {
-                    showAlert('success', `Attendance recorded for Roll No: ${data.roll_number}`);
+                    showAlert('success', `Attendance recorded for ${data.name || 'Student'} (Roll No: ${data.roll_number_last2 || data.roll_number})`);
                 }
+
+                displayReceipt(data);
             } catch (err) {
                 showAlert('error', err.message);
             }
         }
+
+        function displayReceipt(data) {
+            if (!data) return;
+            document.getElementById('receiptCard').style.display = 'block';
+            document.getElementById('recStudentName').innerText = data.name || 'Student';
+            document.getElementById('recRollFull').innerText = (data.roll_number || '') + ' ';
+            document.getElementById('recRoll2').innerText = `(Roll #${data.roll_number_last2 || '--'})`;
+            document.getElementById('recSubject').innerText = data.subject || 'Classroom Session';
+            document.getElementById('recTimestamp').innerText = data.timestamp || new Date().toLocaleString();
+            document.getElementById('recRefId').innerText = data.receipt_id || 'N/A';
+        }
+
+        function downloadReceiptJPG() {
+            if (!lastReceiptData) {
+                showAlert('error', 'No receipt data available to download.');
+                return;
+            }
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = 800;
+            canvas.height = 1000;
+            const ctx = canvas.getContext('2d');
+
+            // Background
+            const grad = ctx.createLinearGradient(0, 0, 0, 1000);
+            grad.addColorStop(0, '#ffffff');
+            grad.addColorStop(1, '#f1f5f9');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 800, 1000);
+
+            // Top Header Bar
+            const headerGrad = ctx.createLinearGradient(0, 0, 800, 0);
+            headerGrad.addColorStop(0, '#6366f1');
+            headerGrad.addColorStop(1, '#a78bfa');
+            ctx.fillStyle = headerGrad;
+            ctx.fillRect(0, 0, 800, 16);
+
+            // Institution Title
+            ctx.fillStyle = '#4f46e5';
+            ctx.font = 'bold 24px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('INSTITUTE OF ENGINEERING & TECHNOLOGY', 400, 75);
+            
+            ctx.fillStyle = '#64748b';
+            ctx.font = '500 16px Inter, sans-serif';
+            ctx.fillText('Department of Electrical Engineering | Batch 2029', 400, 105);
+
+            // Divider
+            ctx.strokeStyle = '#cbd5e1';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(60, 135);
+            ctx.lineTo(740, 135);
+            ctx.stroke();
+
+            // Receipt Title & Ref
+            ctx.fillStyle = '#0f172a';
+            ctx.font = 'bold 28px Inter, sans-serif';
+            ctx.fillText('OFFICIAL ATTENDANCE RECEIPT', 400, 190);
+
+            ctx.fillStyle = '#6366f1';
+            ctx.font = 'bold 16px monospace';
+            ctx.fillText(`REF: ${lastReceiptData.receipt_id || 'N/A'}`, 400, 225);
+
+            // Table Background Box
+            ctx.fillStyle = '#ffffff';
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.lineWidth = 1;
+            if (ctx.roundRect) {
+                ctx.beginPath();
+                ctx.roundRect(60, 260, 680, 520, 16);
+                ctx.fill();
+                ctx.stroke();
+            } else {
+                ctx.fillRect(60, 260, 680, 520);
+                ctx.strokeRect(60, 260, 680, 520);
+            }
+
+            // Receipt Content Rows
+            const rows = [
+                { label: 'Student Name', val: lastReceiptData.name || 'N/A', isBold: true },
+                { label: 'Full Roll Number', val: lastReceiptData.roll_number || 'N/A', isBold: false },
+                { label: 'Roll Number (2 Digits)', val: `Roll #${lastReceiptData.roll_number_last2 || 'N/A'}`, isHighlight: true },
+                { label: 'Email Address', val: lastReceiptData.email || 'N/A', isBold: false },
+                { label: 'Subject', val: lastReceiptData.subject || 'N/A', isBold: true },
+                { label: 'Date & Time', val: lastReceiptData.timestamp || 'N/A', isBold: false },
+                { label: 'Verification Status', val: '✓ PRESENT & VERIFIED', isGreen: true }
+            ];
+
+            let y = 320;
+            ctx.textAlign = 'left';
+            rows.forEach(r => {
+                ctx.fillStyle = '#64748b';
+                ctx.font = '600 18px Inter, sans-serif';
+                ctx.fillText(r.label, 100, y);
+
+                ctx.textAlign = 'right';
+                if (r.isGreen) {
+                    ctx.fillStyle = '#059669';
+                    ctx.font = 'bold 20px Inter, sans-serif';
+                } else if (r.isHighlight) {
+                    ctx.fillStyle = '#6366f1';
+                    ctx.font = 'bold 22px Inter, sans-serif';
+                } else if (r.isBold) {
+                    ctx.fillStyle = '#0f172a';
+                    ctx.font = 'bold 18px Inter, sans-serif';
+                } else {
+                    ctx.fillStyle = '#334155';
+                    ctx.font = '500 18px Inter, sans-serif';
+                }
+                ctx.fillText(r.val, 700, y);
+                ctx.textAlign = 'left';
+
+                // Line separator
+                ctx.strokeStyle = '#f1f5f9';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(100, y + 22);
+                ctx.lineTo(700, y + 22);
+                ctx.stroke();
+
+                y += 65;
+            });
+
+            // Footer Notice
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = 'italic 14px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('Verified via Anti-Proxy Classroom Geofence & Google Authentication', 400, 840);
+            ctx.fillText('This is an official system generated attendance receipt.', 400, 870);
+
+            // Trigger Download
+            const link = document.createElement('a');
+            link.download = `attendance_receipt_${lastReceiptData.roll_number_last2 || 'student'}.jpg`;
+            link.href = canvas.toDataURL('image/jpeg', 0.95);
+            link.click();
+        }
+
+        function downloadReceiptPDF() {
+            if (!lastGoogleToken) {
+                showAlert('error', 'Authentication session token required to download PDF receipt.');
+                return;
+            }
+            const pdfUrl = `/download-student-receipt-pdf?google_token=${encodeURIComponent(lastGoogleToken)}`;
+            window.open(pdfUrl, '_blank');
+        }
+
 
 
 

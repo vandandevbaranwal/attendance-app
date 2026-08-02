@@ -271,6 +271,155 @@ def generate_pdf_report(date_str: str, subject_str: str, students_list: list, on
     buffer.seek(0)
     return buffer
 
+def generate_student_receipt_pdf(receipt_data: dict):
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer, 
+        pagesize=letter,
+        rightMargin=36,
+        leftMargin=36,
+        topMargin=36,
+        bottomMargin=36
+    )
+    story = []
+    styles = getSampleStyleSheet()
+    
+    primary_color = colors.HexColor("#4f46e5")
+    accent_green = colors.HexColor("#059669")
+    text_color = colors.HexColor("#0f172a")
+    sub_color = colors.HexColor("#64748b")
+    bg_light = colors.HexColor("#f8fafc")
+    border_color = colors.HexColor("#cbd5e1")
+    
+    header_style = ParagraphStyle(
+        'InstHeader',
+        parent=styles['Heading2'],
+        fontName='Helvetica-Bold',
+        fontSize=14,
+        leading=18,
+        textColor=primary_color,
+        alignment=1,
+        spaceAfter=2
+    )
+    
+    sub_header_style = ParagraphStyle(
+        'InstSubHeader',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=9,
+        leading=12,
+        textColor=sub_color,
+        alignment=1,
+        spaceAfter=15
+    )
+    
+    title_style = ParagraphStyle(
+        'ReceiptTitle',
+        parent=styles['Heading1'],
+        fontName='Helvetica-Bold',
+        fontSize=16,
+        leading=20,
+        textColor=text_color,
+        alignment=1,
+        spaceAfter=8
+    )
+    
+    ref_style = ParagraphStyle(
+        'ReceiptRef',
+        parent=styles['Normal'],
+        fontName='Helvetica-Bold',
+        fontSize=10,
+        leading=14,
+        textColor=sub_color,
+        alignment=1,
+        spaceAfter=15
+    )
+
+    label_style = ParagraphStyle(
+        'LabelStyle',
+        parent=styles['Normal'],
+        fontName='Helvetica-Bold',
+        fontSize=10,
+        leading=13,
+        textColor=colors.HexColor("#334155")
+    )
+    
+    val_style = ParagraphStyle(
+        'ValStyle',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=10,
+        leading=13,
+        textColor=text_color
+    )
+
+    roll2_style = ParagraphStyle(
+        'Roll2Style',
+        parent=styles['Normal'],
+        fontName='Helvetica-Bold',
+        fontSize=12,
+        leading=14,
+        textColor=primary_color
+    )
+    
+    status_style = ParagraphStyle(
+        'StatusStyle',
+        parent=styles['Normal'],
+        fontName='Helvetica-Bold',
+        fontSize=11,
+        leading=14,
+        textColor=accent_green
+    )
+
+    footer_style = ParagraphStyle(
+        'FooterStyle',
+        parent=styles['Normal'],
+        fontName='Helvetica-Oblique',
+        fontSize=8,
+        leading=11,
+        textColor=sub_color,
+        alignment=1,
+        spaceBefore=20
+    )
+
+    story.append(Paragraph("INSTITUTE OF ENGINEERING & TECHNOLOGY, LUCKNOW", header_style))
+    story.append(Paragraph("Department of Electrical Engineering &bull; Class of 2029", sub_header_style))
+    story.append(Paragraph("DIGITAL ATTENDANCE RECEIPT", title_style))
+    story.append(Paragraph(f"Receipt Ref: {receipt_data.get('receipt_id', 'N/A')}", ref_style))
+    story.append(Spacer(1, 10))
+
+    table_data = [
+        [Paragraph("Student Name", label_style), Paragraph(receipt_data.get("name", "N/A"), val_style)],
+        [Paragraph("Full Roll Number", label_style), Paragraph(receipt_data.get("roll_number", "N/A"), val_style)],
+        [Paragraph("Roll Number (2 Digits)", label_style), Paragraph(receipt_data.get("roll_number_last2", "N/A"), roll2_style)],
+        [Paragraph("Email Address", label_style), Paragraph(receipt_data.get("email", "N/A"), val_style)],
+        [Paragraph("Subject", label_style), Paragraph(receipt_data.get("subject", "N/A"), val_style)],
+        [Paragraph("Date & Time", label_style), Paragraph(receipt_data.get("timestamp", "N/A"), val_style)],
+        [Paragraph("Verification Status", label_style), Paragraph("&check; PRESENT & VERIFIED", status_style)]
+    ]
+
+    t = Table(table_data, colWidths=[160, 360])
+    t_style = TableStyle([
+        ('BACKGROUND', (0,0), (0,-1), bg_light),
+        ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 8),
+        ('TOPPADDING', (0,0), (-1,-1), 8),
+        ('LEFTPADDING', (0,0), (-1,-1), 12),
+        ('RIGHTPADDING', (0,0), (-1,-1), 12),
+        ('GRID', (0,0), (-1,-1), 0.5, border_color),
+    ])
+    t.setStyle(t_style)
+    story.append(t)
+    story.append(Spacer(1, 20))
+    story.append(Paragraph("This attendance record was authenticated via Anti-Proxy Geofencing & Google Account Verification.", footer_style))
+    story.append(Paragraph("System Generated Document &bull; No physical signature required.", footer_style))
+
+    doc.build(story)
+    buffer.seek(0)
+    return buffer
+
+
 @app.on_event("startup")
 def startup_event():
     local_ip = get_local_ip()
@@ -528,10 +677,23 @@ def mark_attendance(payload: AttendanceRequest, db: Session = Depends(get_db)):
             already_marked = True
             break
             
+    roll_last2 = student.roll_number[-2:] if len(student.roll_number) >= 2 else student.roll_number
+    date_clean = session.session_date.replace("-", "")
+    receipt_id = f"REC-{date_clean}-{roll_last2}-{student.id:03d}"
+    formatted_ts = local_attendance_dt.strftime("%Y-%m-%d %I:%M %p")
+
     if already_marked:
         return {
             "status": "already_marked",
-            "message": f"Attendance already marked for student {student.roll_number}."
+            "message": f"Attendance already marked for student {student.name} (Roll No: {student.roll_number}).",
+            "name": student.name,
+            "roll_number": student.roll_number,
+            "roll_number_last2": roll_last2,
+            "email": student.email,
+            "subject": session.subject,
+            "session_date": session.session_date,
+            "timestamp": formatted_ts,
+            "receipt_id": receipt_id
         }
         
     new_attendance = Attendance(
@@ -545,9 +707,14 @@ def mark_attendance(payload: AttendanceRequest, db: Session = Depends(get_db)):
     return {
         "status": "success",
         "message": "Attendance successfully recorded!",
+        "name": student.name,
         "roll_number": student.roll_number,
+        "roll_number_last2": roll_last2,
         "email": student.email,
-        "timestamp": attendance_timestamp.isoformat() + "Z"
+        "subject": session.subject,
+        "session_date": session.session_date,
+        "timestamp": formatted_ts,
+        "receipt_id": receipt_id
     }
 
 @app.get("/attendance-report")
@@ -595,3 +762,49 @@ def download_pdf(date: str, subject: str, only_present: bool = True, google_toke
         'Content-Disposition': f'attachment; filename="{filename}"'
     }
     return StreamingResponse(pdf_buffer, media_type="application/pdf", headers=headers)
+
+@app.get("/download-student-receipt-pdf")
+def download_student_receipt_pdf(google_token: str, db: Session = Depends(get_db)):
+    if not google_token:
+        raise HTTPException(status_code=401, detail="Google Authentication token is required")
+        
+    try:
+        email = verify_google_token(google_token)
+    except ValueError as e:
+        raise HTTPException(status_code=401, detail=str(e))
+        
+    student = db.query(Student).filter(Student.email == email).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found in registry.")
+        
+    latest_att = db.query(Attendance).filter(Attendance.student_id == student.id).order_by(Attendance.timestamp.desc()).first()
+    if not latest_att:
+        raise HTTPException(status_code=404, detail="No attendance records found for student.")
+        
+    session = db.query(ClassroomSession).filter(ClassroomSession.subject == latest_att.subject).order_by(ClassroomSession.id.desc()).first()
+    session_date = session.session_date if session else to_local_time(latest_att.timestamp).strftime("%Y-%m-%d")
+    
+    local_dt = to_local_time(latest_att.timestamp)
+    roll_last2 = student.roll_number[-2:] if len(student.roll_number) >= 2 else student.roll_number
+    date_clean = session_date.replace("-", "")
+    receipt_id = f"REC-{date_clean}-{roll_last2}-{student.id:03d}"
+    
+    receipt_data = {
+        "name": student.name,
+        "roll_number": student.roll_number,
+        "roll_number_last2": roll_last2,
+        "email": student.email,
+        "subject": latest_att.subject,
+        "session_date": session_date,
+        "timestamp": local_dt.strftime("%Y-%m-%d %I:%M %p"),
+        "receipt_id": receipt_id
+    }
+    
+    pdf_buffer = generate_student_receipt_pdf(receipt_data)
+    filename = f"attendance_receipt_{roll_last2}_{date_clean}.pdf"
+    
+    headers = {
+        'Content-Disposition': f'attachment; filename="{filename}"'
+    }
+    return StreamingResponse(pdf_buffer, media_type="application/pdf", headers=headers)
+
