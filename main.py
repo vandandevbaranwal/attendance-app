@@ -40,6 +40,9 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # Whitelisted Class Representative (CR) Google accounts
 CR_EMAILS = [e.strip() for e in os.getenv("CR_EMAILS", "").split(",") if e.strip()]
 
+# Maximum allowed distance (radius in meters) for classroom geofencing verification
+GEOFENCE_RADIUS_METERS = 100.0
+
 # Subject list defined by the user
 SUBJECTS = [
     "IEE301 Electromagnetic Field Theory",
@@ -492,10 +495,10 @@ def mark_attendance(payload: AttendanceRequest, db: Session = Depends(get_db)):
             payload.latitude, payload.longitude
         )
         # Enforce 100 meters threshold
-        if distance > 100.0:
+        if distance > GEOFENCE_RADIUS_METERS:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Attendance rejected: Location verification failed. You must be physically present in the classroom."
+                detail=f"Attendance rejected: Location verification failed. You must be physically present in the classroom (within {int(GEOFENCE_RADIUS_METERS)}m)."
             )
         
     now = datetime.utcnow()

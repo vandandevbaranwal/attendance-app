@@ -3,51 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mark Attendance - Student portal</title>
+    <title>Mark Attendance - Student Portal</title>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <!-- Google Identity Services (GIS) library -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <style>
         :root {
-            --bg-color: #f8fafc;
-            --card-bg: #ffffff;
-            --text-color: #0f172a;
+            --bg-base: #f1f5f9;
+            --bg-card: rgba(255, 255, 255, 0.7);
+            --bg-card-solid: #ffffff;
+            --bg-input: rgba(241, 245, 249, 0.8);
+            --text-main: #0f172a;
             --text-muted: #64748b;
-            --primary: #2563eb;
-            --primary-hover: #1d4ed8;
-            --border-color: #e2e8f0;
-            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --accent: #6366f1;
+            --accent-hover: #818cf8;
+            --accent-glow: rgba(99, 102, 241, 0.15);
             --success: #10b981;
-            --error: #ef4444;
+            --success-glow: rgba(16, 185, 129, 0.12);
+            --error: #f43f5e;
+            --error-glow: rgba(244, 63, 94, 0.12);
+            --border-color: rgba(148, 163, 184, 0.2);
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+            --shadow-md: 0 4px 16px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+            --shadow-lg: 0 12px 40px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --gradient-accent: linear-gradient(135deg, #6366f1 0%, #818cf8 50%, #a78bfa 100%);
+            --gradient-shimmer: linear-gradient(90deg, #6366f1, #818cf8, #a78bfa, #818cf8, #6366f1);
         }
 
         [data-theme="dark"] {
-            --bg-color: #0f172a;
-            --card-bg: #1e293b;
-            --text-color: #f8fafc;
+            --bg-base: #06080f;
+            --bg-card: rgba(15, 23, 42, 0.6);
+            --bg-card-solid: #0f172a;
+            --bg-input: rgba(30, 41, 59, 0.8);
+            --text-main: #f1f5f9;
             --text-muted: #94a3b8;
-            --primary: #3b82f6;
-            --primary-hover: #60a5fa;
-            --border-color: #334155;
-            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+            --border-color: rgba(148, 163, 184, 0.1);
+            --shadow-md: 0 4px 16px rgba(0,0,0,0.2), 0 1px 3px rgba(0,0,0,0.15);
+            --shadow-lg: 0 12px 40px rgba(0,0,0,0.3), 0 4px 12px rgba(0,0,0,0.15);
         }
 
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Outfit', sans-serif;
+            font-family: 'Inter', sans-serif;
         }
 
         body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
+            background-color: var(--bg-base);
+            color: var(--text-main);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -55,191 +65,275 @@
             justify-content: center;
             padding: 1.5rem;
             transition: var(--transition);
+            overflow: hidden;
+            position: relative;
         }
 
-        header {
+        /* Animated gradient mesh background */
+        .bg-mesh {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .bg-orb {
             position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.5;
+            animation: drift 20s infinite ease-in-out alternate;
+        }
+
+        .bg-orb-1 {
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.3), transparent 70%);
+            top: -10%;
+            right: -5%;
+            animation-delay: 0s;
+        }
+
+        .bg-orb-2 {
+            width: 350px;
+            height: 350px;
+            background: radial-gradient(circle, rgba(167, 139, 250, 0.25), transparent 70%);
+            bottom: -10%;
+            left: -5%;
+            animation-delay: -7s;
+        }
+
+        .bg-orb-3 {
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(16, 185, 129, 0.15), transparent 70%);
+            top: 40%;
+            left: 50%;
+            animation-delay: -14s;
+        }
+
+        @keyframes drift {
+            0% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(30px, -20px) scale(1.05); }
+            66% { transform: translate(-20px, 15px) scale(0.95); }
+            100% { transform: translate(10px, -10px) scale(1.02); }
+        }
+
+        [data-theme="dark"] .bg-orb { opacity: 0.35; }
+
+        /* Header */
+        header {
+            position: fixed;
             top: 1.5rem;
             right: 1.5rem;
+            z-index: 100;
         }
 
-        /* Toggle Button */
         .theme-toggle-btn {
-            background: var(--card-bg);
+            background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             border: 1px solid var(--border-color);
-            color: var(--text-color);
-            padding: 0.6rem 1.2rem;
-            border-radius: 50px;
+            color: var(--text-main);
+            padding: 0.55rem 1.1rem;
+            border-radius: 100px;
             cursor: pointer;
             font-weight: 500;
+            font-size: 0.85rem;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            box-shadow: var(--shadow);
+            gap: 0.45rem;
+            box-shadow: var(--shadow-sm);
             transition: var(--transition);
         }
 
         .theme-toggle-btn:hover {
-            border-color: var(--primary);
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+            transform: translateY(-1px);
         }
 
+        /* Main Card */
         .container {
-            max-width: 480px;
+            max-width: 460px;
             width: 100%;
             text-align: center;
+            z-index: 10;
+            position: relative;
         }
 
         .card {
-            background-color: var(--card-bg);
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             border: 1px solid var(--border-color);
-            border-radius: 24px;
-            padding: 2.5rem 2rem;
-            box-shadow: var(--shadow);
+            border-radius: 28px;
+            padding: 2.8rem 2.2rem 2.4rem;
+            box-shadow: var(--shadow-lg);
             transition: var(--transition);
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 1.5rem;
+            gap: 1.4rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Gradient top shimmer bar */
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 200%;
+            height: 4px;
+            background: var(--gradient-shimmer);
+            background-size: 200% 100%;
+            animation: shimmer 4s linear infinite;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
         }
 
         h1 {
-            font-size: 2rem;
+            font-size: 1.85rem;
             font-weight: 700;
-            letter-spacing: -0.025em;
+            letter-spacing: -0.03em;
+            line-height: 1.2;
         }
 
         p.subtitle {
             color: var(--text-muted);
-            font-size: 1rem;
-            line-height: 1.5;
+            font-size: 0.92rem;
+            line-height: 1.6;
+            max-width: 380px;
         }
 
+        /* Token Display */
         .token-display {
-            background-color: var(--bg-color);
+            background: var(--bg-input);
             border: 1px solid var(--border-color);
-            padding: 0.8rem 1.2rem;
+            padding: 0.7rem 1.2rem;
             border-radius: 12px;
-            font-family: monospace;
-            font-size: 0.95rem;
-            font-weight: bold;
-            color: var(--primary);
+            font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: var(--accent);
             max-width: 100%;
             overflow-x: auto;
             white-space: nowrap;
+            transition: var(--transition);
         }
 
-        /* Google button container override to center */
+        /* Google Button */
         .google-btn-wrapper {
-            margin: 1rem 0;
+            margin: 0.5rem 0;
             display: flex;
             justify-content: center;
             width: 100%;
         }
 
-        /* Status Messages */
+        .google-custom-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            background: var(--bg-card-solid);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            padding: 0.85rem 1.6rem;
+            border-radius: 100px;
+            font-weight: 600;
+            font-size: 0.92rem;
+            cursor: pointer;
+            transition: var(--transition);
+            width: 100%;
+            box-shadow: var(--shadow-sm);
+            font-family: 'Inter', sans-serif;
+        }
+
+        .google-custom-btn:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow), var(--shadow-md);
+            transform: translateY(-2px);
+        }
+
+        .google-custom-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Alert Notifications */
         .alert {
             display: none;
             width: 100%;
-            padding: 1rem;
-            border-radius: 12px;
+            padding: 1rem 1.2rem;
+            border-radius: 14px;
             font-weight: 500;
             text-align: left;
-            font-size: 0.95rem;
-            line-height: 1.4;
-            animation: slideDown 0.3s ease;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            animation: slideDown 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
         }
 
         .alert-success {
-            background-color: rgba(16, 185, 129, 0.1);
-            border: 1px solid var(--success);
+            background: var(--success-glow);
+            border: 1px solid rgba(16, 185, 129, 0.25);
             color: var(--success);
         }
 
         .alert-error {
-            background-color: rgba(239, 68, 68, 0.1);
-            border: 1px solid var(--error);
+            background: var(--error-glow);
+            border: 1px solid rgba(244, 63, 94, 0.25);
             color: var(--error);
         }
 
         @keyframes slideDown {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
+            from { opacity: 0; transform: translateY(-12px) scale(0.97); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
         }
 
-        /* Dev Test Panel styles */
-        .dev-toggle {
-            margin-top: 1.5rem;
-            font-size: 0.85rem;
+        /* Footer branding */
+        .footer-brand {
+            margin-top: 2rem;
+            font-size: 0.78rem;
             color: var(--text-muted);
-            cursor: pointer;
-            text-decoration: underline;
-            background: none;
-            border: none;
+            opacity: 0.6;
+            z-index: 10;
+            position: relative;
         }
 
-        .dev-toggle:hover {
-            color: var(--primary);
-        }
-
-        .dev-panel {
-            display: none;
-            flex-direction: column;
-            gap: 0.8rem;
-            width: 100%;
-            border-top: 1px dashed var(--border-color);
-            padding-top: 1.5rem;
-            margin-top: 0.5rem;
-        }
-
-        .dev-panel.active {
-            display: flex;
-        }
-
-        .dev-input {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            border: 1px solid var(--border-color);
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            border-radius: 10px;
-            font-size: 0.9rem;
-            outline: none;
-            transition: var(--transition);
-        }
-
-        .dev-input:focus {
-            border-color: var(--primary);
-        }
-
-        .dev-btn {
-            background-color: var(--primary);
-            color: #ffffff;
-            border: none;
-            padding: 0.75rem 1rem;
-            border-radius: 10px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            cursor: pointer;
-            transition: var(--transition);
-        }
-
-        .dev-btn:hover {
-            background-color: var(--primary-hover);
+        /* Responsive */
+        @media (max-width: 480px) {
+            .card { padding: 2.2rem 1.5rem 2rem; border-radius: 22px; }
+            h1 { font-size: 1.5rem; }
+            .bg-orb { filter: blur(60px); }
         }
     </style>
 </head>
 <body>
 
+    <!-- Animated background mesh -->
+    <div class="bg-mesh">
+        <div class="bg-orb bg-orb-1"></div>
+        <div class="bg-orb bg-orb-2"></div>
+        <div class="bg-orb bg-orb-3"></div>
+    </div>
+
     <header>
         <button class="theme-toggle-btn" onclick="toggleTheme()" id="themeToggleBtn">
-            <span id="themeIcon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span> <span id="themeText">Dark Mode</span>
+            <span id="themeIcon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span> <span id="themeText">Dark</span>
         </button>
     </header>
 
     <div class="container">
         <div class="card">
             <h1>Mark Attendance</h1>
-            <p class="subtitle">Secure Google authentication checks your email against the Electrical Engineering student whitelist.</p>
+            <p class="subtitle">Authenticate with your college Google account to verify your identity and register attendance.</p>
             
             <div class="token-display" id="tokenDisplay">
                 Loading session token...
@@ -257,8 +351,8 @@
 
             <!-- Google OAuth button -->
             <div class="google-btn-wrapper" id="googleButtonDiv">
-                <button class="google-custom-btn" onclick="loginWithGoogle()" style="display: flex; align-items: center; justify-content: center; gap: 0.8rem; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-color); padding: 0.8rem 1.5rem; border-radius: 50px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; width: 100%; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); font-family: inherit; font-size: 0.95rem;">
-                    <svg width="20" height="20" viewBox="0 0 18 18" style="margin-right: 0.2rem;">
+                <button class="google-custom-btn" onclick="loginWithGoogle()">
+                    <svg width="20" height="20" viewBox="0 0 18 18">
                         <path fill="#4285F4" d="M17.64 9.2c0-.63-.06-1.25-.16-1.84H9v3.47h4.84a4.14 4.14 0 0 1-1.8 2.71v2.26h2.91c1.7-1.57 2.69-3.88 2.69-6.6z"/>
                         <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.2l-2.91-2.26c-.8.54-1.83.86-3.05.86-2.34 0-4.32-1.58-5.03-3.7H.95v2.33A9 9 0 0 0 9 18z"/>
                         <path fill="#FBBC05" d="M3.97 10.7a5.4 5.4 0 0 1 0-3.4V4.97H.95a9 9 0 0 0 0 8.06l3.02-2.33z"/>
@@ -268,14 +362,10 @@
                 </button>
             </div>
 
-            <button class="dev-toggle" onclick="toggleDevPanel()">Local developer testing options</button>
-            
-            <div class="dev-panel" id="devPanel">
-                <input type="text" class="dev-input" id="devEmail" placeholder="e.g. 2500520200001@ietlucknow.ac.in" value="2500520200001@ietlucknow.ac.in">
-                <button class="dev-btn" onclick="submitMockAttendance()">Submit Mock Attendance</button>
-            </div>
         </div>
     </div>
+
+    <div class="footer-brand">IET Lucknow — Electrical Engineering '29</div>
 
     <script>
         // Extract session token from URL parameters
@@ -291,11 +381,7 @@
             tokenDisplay.style.color = 'var(--error)';
         }
 
-        // Show/hide developer panel
-        function toggleDevPanel() {
-            const panel = document.getElementById('devPanel');
-            panel.classList.toggle('active');
-        }
+
 
         // Display outcome alerts
         function showAlert(type, message) {
@@ -376,36 +462,7 @@
             }
         }
 
-        // Local development: Submit simulated attendance bypassing google
-        function submitMockAttendance() {
-            const email = document.getElementById('devEmail').value.trim();
-            if (!email) {
-                showAlert('error', 'Please enter a valid mock email address');
-                return;
-            }
-            if (!sessionToken) {
-                showAlert('error', 'Missing active session token.');
-                return;
-            }
 
-            const mockGoogleToken = `mock_token_${email}`;
-            
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        submitAttendance(mockGoogleToken, position.coords.latitude, position.coords.longitude);
-                    },
-                    (error) => {
-                        console.warn("Mock location failed/denied. Using defaults.", error);
-                        // Default mock coordinates for testing if permission denied
-                        submitAttendance(mockGoogleToken, 26.8929, 80.9840);
-                    },
-                    { enableHighAccuracy: true, timeout: 3000 }
-                );
-            } else {
-                submitAttendance(mockGoogleToken, 26.8929, 80.9840);
-            }
-        }
 
         // Dark/Light Mode logic
         function toggleTheme() {
@@ -427,11 +484,11 @@
             const themeText = document.getElementById("themeText");
             
             if (theme === "dark") {
-                themeIcon.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
-                themeText.innerText = "Light Mode";
+                themeIcon.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
+                themeText.innerText = "Light";
             } else {
-                themeIcon.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
-                themeText.innerText = "Dark Mode";
+                themeIcon.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+                themeText.innerText = "Dark";
             }
         }
 

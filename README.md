@@ -8,7 +8,7 @@ A Python FastAPI application with an SQLite database and Google OAuth2 verificat
 3. **Whitelist Validation**: Restricts marking attendance to whitelisted student accounts loaded into the SQLite database.
 4. **Proxy Prevention**: Ensures attendance registration can only occur with active, unexpired tokens. Restricts students from duplicate markings during the same session.
 5. **Modern, Responsive Frontend**: Features responsive, clean design interfaces for both the classroom display and student portal, with support for Dark/Light theme toggles.
-6. **Local Test Mode**: Built-in developer mock tokens to test the full attendance flow without requiring valid Google API client configuration.
+6. **Geofence Verification (100m Radius)**: Validates student GPS coordinates against the Class Representative's session location, ensuring physical presence within 100 meters.
 
 ---
 
@@ -48,9 +48,6 @@ pip install -r requirements.txt
 GOOGLE_CLIENT_ID=your-actual-client-id.apps.googleusercontent.com
 ```
 
-> [!NOTE]
-> If you do not have a Google Client ID set up, you can still test the application locally using the **Local Developer Testing Panel** in the student interface (details below).
-
 ---
 
 ## Database Initialization & Whitelist Seeding
@@ -87,14 +84,6 @@ uvicorn main:app --reload
 - Scan the QR code from the dashboard or navigate directly to the URL encoded in it (e.g. `http://localhost:8000/mark-attendance?token=<ACTIVE-UUID>`).
 - Sign in securely using the official **Sign in with Google** button.
 - Once authenticated, the student's email is verified against the database whitelist. If the email matches and the token is valid, attendance is marked.
-
-### 3. Local Developer Mock Testing
-To test the attendance verification without configuring Google Credentials:
-1. Scan the QR code or navigate to `http://localhost:8000/mark-attendance?token=<ACTIVE-UUID>`.
-2. Expand the **Local developer testing options** link at the bottom of the student portal.
-3. Input any whitelisted student email (e.g., `2500520200001@ietlucknow.ac.in`).
-4. Click **Submit Mock Attendance**.
-5. The application will simulate Google Identity authentication with a mock token suffix, marking attendance successfully.
 
 ---
 
