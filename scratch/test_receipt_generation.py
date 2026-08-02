@@ -60,7 +60,7 @@ def generate_scratchpad_receipts():
             ("Email Address:", sample_data['email'], '#334155'),
             ("Subject:", sample_data['subject'], '#0f172a'),
             ("Date & Time:", sample_data['timestamp'], '#334155'),
-            ("Verification Status:", "✓ PRESENT & VERIFIED", '#059669')
+            ("Verification Status:", "[VERIFIED] PRESENT & VERIFIED", '#059669')
         ]
         
         y = 300
