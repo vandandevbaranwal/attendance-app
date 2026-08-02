@@ -785,7 +785,7 @@
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-                URL.revokeObjectURL(blobUrl);
+                setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
             } catch (e) {
                 showAlert('error', 'Network error while downloading PDF receipt.');
             }

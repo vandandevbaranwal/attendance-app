@@ -1100,7 +1100,7 @@
         }
 
         // Download PDF
-        function downloadPdfReport() {
+        async function downloadPdfReport() {
             const date = document.getElementById("reportDate").value;
             const subject = document.getElementById("reportSubject").value;
             const onlyPresent = document.getElementById("onlyPresentCheck").checked;
@@ -1110,9 +1110,29 @@
                 return;
             }
             
-            const token = sessionStorage.getItem("cr_token");
-            const url = `/download-pdf?date=${date}&subject=${encodeURIComponent(subject)}&only_present=${onlyPresent}&google_token=${token}`;
-            window.location.href = url;
+            try {
+                const res = await fetch(`/download-pdf?date=${date}&subject=${encodeURIComponent(subject)}&only_present=${onlyPresent}`, {
+                    headers: getAuthHeaders()
+                });
+                if(!res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    alert(data.detail || "Error downloading PDF report");
+                    return;
+                }
+                const blob = await res.blob();
+                const blobUrl = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.href = blobUrl;
+                const safeSubject = subject.replace(/[^a-zA-Z0-9]/g, "_");
+                link.download = `attendance_${safeSubject}_${date}.pdf`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+            } catch (err) {
+                console.error(err);
+                alert("Network error downloading PDF report.");
+            }
         }
 
         // Show self-marking alerts
