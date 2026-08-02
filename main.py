@@ -22,11 +22,10 @@ from reportlab.lib import colors
 
 app = FastAPI(title="Anti-Proxy Attendance System")
 
-# Configure CORS
+# Configure CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )

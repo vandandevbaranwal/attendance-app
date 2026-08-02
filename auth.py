@@ -44,6 +44,15 @@ def verify_google_token(token: str) -> str:
             raise ValueError(f"Invalid Google ID token: {str(e)}")
     else:
         try:
+            # Verify client_id / audience via Google tokeninfo endpoint if client ID is configured
+            if GOOGLE_CLIENT_ID and not GOOGLE_CLIENT_ID.startswith("your-google-client-id"):
+                tokeninfo_res = python_requests.get(f"https://www.googleapis.com/oauth2/v3/tokeninfo?access_token={token}")
+                if tokeninfo_res.status_code == 200:
+                    tdata = tokeninfo_res.json()
+                    aud = tdata.get("aud") or tdata.get("azp")
+                    if aud and aud != GOOGLE_CLIENT_ID:
+                        raise ValueError("Google Access Token was not issued for this application.")
+
             # Verify the Access Token by calling Google's userinfo endpoint
             res = python_requests.get(f"https://www.googleapis.com/oauth2/v3/userinfo?access_token={token}")
             if res.status_code != 200:
