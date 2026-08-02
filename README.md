@@ -87,6 +87,26 @@ uvicorn main:app --reload
 
 ---
 
+## Deploying to Render
+
+The application is configured to run smoothly on [Render](https://render.com).
+
+### Render Web Service Settings:
+- **Environment**: `Python 3`
+- **Build Command**: `pip install -r requirements.txt && python seed.py`
+- **Start Command**: `uvicorn main:app --host 0.0.0.0 --port $PORT`
+
+### Required Environment Variables on Render:
+| Variable | Example / Purpose |
+| :--- | :--- |
+| `GOOGLE_CLIENT_ID` | `your-id.apps.googleusercontent.com` |
+| `CR_EMAILS` | `2500520200061@ietlucknow.ac.in,2500520200073@ietlucknow.ac.in` |
+
+> [!TIP]
+> **Google OAuth & Geolocation on Mobile**: Render automatically provides HTTPS (`https://your-app.onrender.com`), which is required by mobile browsers for both **Google Identity OAuth** and **HTML5 GPS Geolocation**. Add your Render URL to your Google Cloud Console under **Authorized JavaScript Origins**.
+
+---
+
 ## Verification & Testing Suite
 
 We have created a comprehensive validation test suite (`scratch/test_endpoints.py`) using FastAPI's `TestClient` to verify all logical requirements (expiration, whitelist validation, duplicate marking prevention, etc.) without requiring uvicorn to run in the background.
@@ -95,3 +115,4 @@ Run the test suite:
 ```bash
 python scratch/test_endpoints.py
 ```
+
