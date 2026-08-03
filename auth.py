@@ -39,7 +39,7 @@ def verify_google_token(token: str) -> str:
             if not email:
                 raise ValueError("Email not found in Google ID token.")
                 
-            return email
+            return email.strip().lower()
         except Exception as e:
             raise ValueError(f"Invalid Google ID token: {str(e)}")
     else:
@@ -63,6 +63,6 @@ def verify_google_token(token: str) -> str:
             if not email:
                 raise ValueError("Email not found in Google userinfo response.")
             
-            return email
+            return email.strip().lower()
         except Exception as e:
             raise ValueError(f"Invalid Google Access token: {str(e)}")

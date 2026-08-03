@@ -240,6 +240,81 @@ def run_tests():
     assert res.content.startswith(b"%PDF-")
     print("    [OK] Student receipt PDF download blocked query params and verified Authorization header.")
 
+    # 13. Test Case-Insensitive Email Matching & Personal Email Errors
+    print("\n13. Testing Case-Insensitive Email & Personal Account Errors...")
+    # Mixed case student token
+    mixed_email = "2500520200003@IETLucknow.ac.IN"
+    res = client.post("/mark-attendance", json={
+        "token": geo_token,
+        "google_token": f"mock_token_{mixed_email}",
+        "latitude": 26.8930,
+        "longitude": 80.9841
+    })
+    assert res.status_code == 200
+    assert res.json()["roll_number"] == "2500520200003"
+    print("    [OK] Case-insensitive email matching succeeded for mixed-case email.")
+
+    # Personal Gmail account
+    personal_email = "testuser@gmail.com"
+    res = client.post("/mark-attendance", json={
+        "token": geo_token,
+        "google_token": f"mock_token_{personal_email}",
+        "latitude": 26.8930,
+        "longitude": 80.9841
+    })
+    assert res.status_code == 400
+    assert "PERSONAL_ACCOUNT" in res.json()["detail"]
+    print("    [OK] Personal email correctly returned PERSONAL_ACCOUNT error prefix.")
+
+    # 14. Test Smart Roll-Number Fallback Matching
+    print("\n14. Testing Smart Roll-Number Fallback Matching...")
+    fallback_email = "alias.2500520200004@ietlucknow.ac.in"
+    res = client.post("/mark-attendance", json={
+        "token": geo_token,
+        "google_token": f"mock_token_{fallback_email}",
+        "latitude": 26.8930,
+        "longitude": 80.9841
+    })
+    assert res.status_code == 200
+    assert res.json()["roll_number"] == "2500520200004"
+    print("    [OK] Smart Roll-Number Fallback extracted roll number from email and marked attendance.")
+
+    # 15. Test CR Whitelist Management APIs (CRUD)
+    print("\n15. Testing CR Whitelist Management APIs...")
+    # Unauthorized access -> 401 / 403
+    res = client.get("/api/cr/students")
+    assert res.status_code == 401
+    res = client.get("/api/cr/students", headers=invalid_headers)
+    assert res.status_code == 403
+
+    # Authorized GET /api/cr/students
+    res = client.get("/api/cr/students", headers=valid_headers)
+    assert res.status_code == 200
+    students_list = res.json()
+    assert len(students_list) >= 77
+
+    # Authorized POST /api/cr/students (Add new student)
+    new_student_data = {
+        "roll_number": "2500520200099",
+        "name": "TEST NEW STUDENT",
+        "email": "2500520200099@ietlucknow.ac.in"
+    }
+    res = client.post("/api/cr/students", json=new_student_data, headers=valid_headers)
+    assert res.status_code == 200
+    added_student = res.json()["student"]
+    created_id = added_student["id"]
+    assert added_student["roll_number"] == "2500520200099"
+
+    # Authorized PUT /api/cr/students/{id} (Update student)
+    res = client.put(f"/api/cr/students/{created_id}", json={"name": "UPDATED NEW STUDENT"}, headers=valid_headers)
+    assert res.status_code == 200
+    assert res.json()["student"]["name"] == "UPDATED NEW STUDENT"
+
+    # Authorized DELETE /api/cr/students/{id} (Delete student)
+    res = client.delete(f"/api/cr/students/{created_id}", headers=valid_headers)
+    assert res.status_code == 200
+    print("    [OK] Whitelist Management APIs (GET, POST, PUT, DELETE) verified successfully.")
+
     print("\n=========================================")
     print("ALL SECURED TESTS PASSED SUCCESSFULLY!")
     print("=========================================")

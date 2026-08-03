@@ -548,7 +548,24 @@
                 successAlert.innerHTML = `<strong>Success!</strong> ${message}`;
                 successAlert.style.display = 'block';
             } else {
-                errorAlert.innerHTML = `<strong>Error:</strong> ${message}`;
+                let cleanMsg = message || 'An unexpected error occurred.';
+                let showSwitchAccount = false;
+
+                if (cleanMsg.includes('PERSONAL_ACCOUNT:')) {
+                    cleanMsg = cleanMsg.replace('PERSONAL_ACCOUNT:', '').trim();
+                    showSwitchAccount = true;
+                } else if (cleanMsg.includes('UNLISTED_EMAIL:')) {
+                    cleanMsg = cleanMsg.replace('UNLISTED_EMAIL:', '').trim();
+                    showSwitchAccount = true;
+                } else if (cleanMsg.toLowerCase().includes('whitelist') || cleanMsg.toLowerCase().includes('not in the student') || cleanMsg.toLowerCase().includes('gmail.com')) {
+                    showSwitchAccount = true;
+                }
+
+                let html = `<strong>Error:</strong> ${cleanMsg}`;
+                if (showSwitchAccount) {
+                    html += `<div style="margin-top: 0.85rem;"><button onclick="loginWithGoogle()" style="background: linear-gradient(135deg, #6366f1, #4f46e5); color: #ffffff; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s;">🔄 Switch Google Account</button></div>`;
+                }
+                errorAlert.innerHTML = html;
                 errorAlert.style.display = 'block';
             }
         }

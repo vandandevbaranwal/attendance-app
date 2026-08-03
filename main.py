@@ -1,12 +1,14 @@
 import os
 import uuid
 import io
+import re
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 from fastapi import FastAPI, Depends, HTTPException, status, Request, Header
 from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
@@ -41,8 +43,8 @@ os.makedirs("static", exist_ok=True)
 # Mount the static directory
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# Whitelisted Class Representative (CR) Google accounts
-CR_EMAILS = [e.strip() for e in os.getenv("CR_EMAILS", "").split(",") if e.strip()]
+# Whitelisted Class Representative (CR) Google accounts (lowercase & trimmed)
+CR_EMAILS = [e.strip().lower() for e in os.getenv("CR_EMAILS", "").split(",") if e.strip()]
 
 # Maximum allowed distance (radius in meters) for classroom geofencing verification
 GEOFENCE_RADIUS_METERS = 100.0
@@ -70,6 +72,16 @@ class StartSessionRequest(BaseModel):
 
 class VerifyCrRequest(BaseModel):
     google_token: str
+
+class StudentCreate(BaseModel):
+    roll_number: str
+    name: str
+    email: str
+
+class StudentUpdate(BaseModel):
+    roll_number: Optional[str] = None
+    name: Optional[str] = None
+    email: Optional[str] = None
 
 def get_local_ip():
     import socket
@@ -122,7 +134,7 @@ def verify_cr_token(authorization: str = Header(None)) -> str:
         raise HTTPException(status_code=401, detail="Authentication token required")
         
     try:
-        email = verify_google_token(google_token)
+        email = verify_google_token(google_token).strip().lower()
     except ValueError as e:
         raise HTTPException(status_code=401, detail=f"Invalid Google Token: {str(e)}")
         
@@ -454,7 +466,7 @@ def get_subjects():
 @app.post("/verify-cr")
 def verify_cr_endpoint(payload: VerifyCrRequest):
     try:
-        email = verify_google_token(payload.google_token)
+        email = verify_google_token(payload.google_token).strip().lower()
     except ValueError as e:
         raise HTTPException(status_code=401, detail=str(e))
         
@@ -610,19 +622,37 @@ def mark_attendance(payload: AttendanceRequest, db: Session = Depends(get_db)):
         )
         
     try:
-        email = verify_google_token(payload.google_token)
+        email = verify_google_token(payload.google_token).strip().lower()
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=str(e)
         )
         
-    student = db.query(Student).filter(Student.email == email).first()
+    student = db.query(Student).filter(func.lower(Student.email) == email).first()
     if not student:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Email '{email}' is not in the student whitelist."
-        )
+        # Smart Roll-Number Fallback: Check if roll number digits exist inside email address
+        match = re.search(r'\d{13}', email)
+        if match:
+            extracted_roll = match.group(0)
+            student_by_roll = db.query(Student).filter(Student.roll_number == extracted_roll).first()
+            if student_by_roll:
+                student = student_by_roll
+                # Dynamically sync student's email alias so future log-ins match directly
+                student.email = email
+                db.commit()
+
+    if not student:
+        if not email.endswith("@ietlucknow.ac.in"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"PERSONAL_ACCOUNT: You signed in with personal account '{email}'. Please sign out and sign in using your official college Google account (@ietlucknow.ac.in)."
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"UNLISTED_EMAIL: Email '{email}' is not in the student whitelist. Ask your Class Representative (CR) to add your email/roll number."
+            )
         
     session = db.query(ClassroomSession).filter(ClassroomSession.is_active == 1).first()
     if not session:
@@ -784,11 +814,11 @@ def download_student_receipt_pdf(authorization: str = Header(None), db: Session 
         raise HTTPException(status_code=401, detail="Google Authentication token is required")
         
     try:
-        email = verify_google_token(google_token)
+        email = verify_google_token(google_token).strip().lower()
     except ValueError as e:
         raise HTTPException(status_code=401, detail=str(e))
         
-    student = db.query(Student).filter(Student.email == email).first()
+    student = db.query(Student).filter(func.lower(Student.email) == email).first()
     if not student:
         raise HTTPException(status_code=404, detail="Student not found in registry.")
         
@@ -822,4 +852,108 @@ def download_student_receipt_pdf(authorization: str = Header(None), db: Session 
         'Content-Disposition': f'attachment; filename="{filename}"'
     }
     return StreamingResponse(pdf_buffer, media_type="application/pdf", headers=headers)
+
+# Whitelist Management Endpoints (CR Access Required)
+@app.get("/api/cr/students")
+def get_whitelisted_students(authorization: str = Header(None), db: Session = Depends(get_db)):
+    verify_cr_token(authorization)
+    students = db.query(Student).order_by(Student.roll_number).all()
+    return [
+        {
+            "id": s.id,
+            "roll_number": s.roll_number,
+            "roll_number_last2": s.roll_number[-2:] if len(s.roll_number) >= 2 else s.roll_number,
+            "name": s.name,
+            "email": s.email
+        }
+        for s in students
+    ]
+
+@app.post("/api/cr/students")
+def add_student_to_whitelist(payload: StudentCreate, authorization: str = Header(None), db: Session = Depends(get_db)):
+    verify_cr_token(authorization)
+    
+    roll = payload.roll_number.strip()
+    name = payload.name.strip()
+    email = payload.email.strip().lower()
+    
+    if not roll or not name or not email:
+        raise HTTPException(status_code=400, detail="Roll Number, Name, and Email are required.")
+        
+    existing_roll = db.query(Student).filter(Student.roll_number == roll).first()
+    if existing_roll:
+        raise HTTPException(status_code=400, detail=f"Student with Roll Number '{roll}' already exists.")
+        
+    existing_email = db.query(Student).filter(func.lower(Student.email) == email).first()
+    if existing_email:
+        raise HTTPException(status_code=400, detail=f"Student with Email '{email}' already exists.")
+        
+    new_student = Student(roll_number=roll, name=name, email=email)
+    db.add(new_student)
+    db.commit()
+    db.refresh(new_student)
+    return {
+        "status": "success",
+        "message": f"Student '{name}' ({roll}) added to whitelist successfully.",
+        "student": {
+            "id": new_student.id,
+            "roll_number": new_student.roll_number,
+            "roll_number_last2": new_student.roll_number[-2:] if len(new_student.roll_number) >= 2 else new_student.roll_number,
+            "name": new_student.name,
+            "email": new_student.email
+        }
+    }
+
+@app.put("/api/cr/students/{student_id}")
+def update_whitelisted_student(student_id: int, payload: StudentUpdate, authorization: str = Header(None), db: Session = Depends(get_db)):
+    verify_cr_token(authorization)
+    
+    student = db.query(Student).filter(Student.id == student_id).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found.")
+        
+    if payload.roll_number:
+        new_roll = payload.roll_number.strip()
+        existing = db.query(Student).filter(Student.roll_number == new_roll, Student.id != student_id).first()
+        if existing:
+            raise HTTPException(status_code=400, detail=f"Roll Number '{new_roll}' is used by another student.")
+        student.roll_number = new_roll
+        
+    if payload.name:
+        student.name = payload.name.strip()
+        
+    if payload.email:
+        new_email = payload.email.strip().lower()
+        existing = db.query(Student).filter(func.lower(Student.email) == new_email, Student.id != student_id).first()
+        if existing:
+            raise HTTPException(status_code=400, detail=f"Email '{new_email}' is used by another student.")
+        student.email = new_email
+        
+    db.commit()
+    db.refresh(student)
+    return {
+        "status": "success",
+        "message": f"Student record for '{student.name}' updated.",
+        "student": {
+            "id": student.id,
+            "roll_number": student.roll_number,
+            "roll_number_last2": student.roll_number[-2:] if len(student.roll_number) >= 2 else student.roll_number,
+            "name": student.name,
+            "email": student.email
+        }
+    }
+
+@app.delete("/api/cr/students/{student_id}")
+def delete_whitelisted_student(student_id: int, authorization: str = Header(None), db: Session = Depends(get_db)):
+    verify_cr_token(authorization)
+    
+    student = db.query(Student).filter(Student.id == student_id).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found.")
+        
+    name = student.name
+    roll = student.roll_number
+    db.delete(student)
+    db.commit()
+    return {"status": "success", "message": f"Student '{name}' ({roll}) removed from whitelist."}
 
